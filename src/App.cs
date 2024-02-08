@@ -21,7 +21,11 @@ class App
 
 	private static void Start()
 	{
+		// Load the video
+		// VideoManager.LoadVideo(VideoManager.VideoPath);
 
+		//! test (clip to 3 seconds long)
+		Utils.RunFfmpegCommand("-t 3");
 	}
 
 	private static void Update()

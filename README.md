@@ -9,5 +9,13 @@ As an example, if someone was to record a clip that was 40 seconds, but they onl
 
 ---
 
+# Launching
+The program must be launched with these arguments:
+```cmd
+clipper.exe <PATH TO FFMPEG> <PATH TO VIDEO>
+```
+
+# Getting FFMPEG
+This project uses a extremely popular library called `FFMPEG` to handle the video editing. To use it, download the latest version [here](https://github.com/BtbN/FFmpeg-Builds/releases), then extract the folder and copy everything inside `./bin` to a place of your choosing. Launch the program with the first argument being the location to all three files.
 
 *This project is for my NCEA Level 3 DTS scholarship btw*
