@@ -6,10 +6,10 @@ class App
 	{
 		// Raylib stuff
 		// TODO: Switch library
-		Raylib.InitWindow(700, 500, "Clipper v1");
+		Raylib.InitWindow(700, 500, "Clipper r0");
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetTargetFPS(60);
-		
+
 		Start();
 		while (!Raylib.WindowShouldClose())
 		{
@@ -24,8 +24,10 @@ class App
 		// Load the video
 		// VideoManager.LoadVideo(VideoManager.VideoPath);
 
+		Ffmpeg.LoadVideo("./assets/video.mp4");
+
 		//! test (clip to 3 seconds long)
-		Utils.RunFfmpegCommand("-t 3");
+		// Utils.RunFfmpegCommand("-t 3");
 	}
 
 	private static void Update()
