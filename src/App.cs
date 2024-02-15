@@ -32,13 +32,18 @@ class App
 
 	private static void Update()
 	{
-
+		
 	}
 
 	private static void Render()
 	{
 		Raylib.BeginDrawing();
 		Raylib.ClearBackground(Color.Magenta);
+
+		//! debug
+		// Show some text to tell the use that
+		// FFMPEG is busy doing stuff in background
+		if (Ffmpeg.Working) Raylib.DrawText("busy rn", 25, 25, 50, Color.White);
 
 		Raylib.EndDrawing();
 	}
