@@ -22,15 +22,7 @@ class App
 	private static void Start()
 	{
 		// Load the video
-		// VideoManager.LoadVideo(VideoManager.VideoPath);
-
-		// Ffmpeg.LoadVideo("./assets/video.mp4");
-
-		string output = Ffmpeg.RunCommand(Ffmpeg.Service.Ffprobe, "-i ./assets/video.mp4 -show_format -show_streams -print_format json -v error");
-		Console.WriteLine(output);
-
-		//! test (clip to 3 seconds long)
-		// Utils.RunFfmpegCommand("-t 3");
+		VideoManager.LoadVideo();
 	}
 
 	private static void Update()
