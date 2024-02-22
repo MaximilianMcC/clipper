@@ -144,13 +144,31 @@ class Ffmpeg
 
 
 		// Give back all of the frames as colors
-		VideoManager.VideoLoaded = true;
+		VideoManager.ColorsLoaded = true;
 		return frameColors;
 	}
 
 	// Convert pixels to a texture
 	public static Texture2D GenerateFrame(Color[] pixels)
 	{
-		return new Texture2D();
+		// Make a render texture to draw the frame on
+		// TODO: Don't keep creating a new render texture object for every frame
+		RenderTexture2D renderTexture = Raylib.LoadRenderTexture(VideoManager.Width, VideoManager.Height);
+		Raylib.BeginTextureMode(renderTexture);
+
+		// Loop over every color and add it
+		// to the video frame
+		for (int i = 0; i < pixels.Length; i++)
+		{
+			// Get the coordinates for the pixel
+			int x = i % VideoManager.Width;
+			int y = i / VideoManager.Width;
+
+			// Draw the pixel
+			Raylib.DrawPixel(x, y, pixels[i]);
+		}
+
+		Raylib.EndTextureMode();
+		return renderTexture.Texture;
 	}
 }

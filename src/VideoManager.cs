@@ -9,7 +9,8 @@ class VideoManager
 
 	// Loading debugging stuff
 	public static int LoadedFrames { get; set; }
-	public static bool VideoLoaded { get; set; }
+	public static bool ColorsLoaded { get; set; }
+	public static bool FullyLoaded { get; set; }
 
 	// Video properties
 	public static double Fps { get; private set; }
@@ -19,12 +20,13 @@ class VideoManager
 
 	// Frame crap
 	public static int CurrentFrame { get; set; }
-	private static Texture2D[] Frames;
+	private static Texture2D[] frames;
 	private static Color[][] frameColors;
 	private static double showedLastFrame;
 
 	// Playback state
-	public static bool Paused { get; set; }
+	public static bool Paused { get; set; } = false;
+	// public static bool Looped { get; set; } = true;
 
 	// Load in the video
 	public static void LoadVideo()
@@ -35,17 +37,19 @@ class VideoManager
 
 		// Get all of the frames as their colors
 		frameColors = Ffmpeg.GetFrames();
-		Frames = new Texture2D[FrameCount];
+		frames = new Texture2D[FrameCount];
 		
 		// Set the initial time for updating the frames
+		// and generate the first frame
 		showedLastFrame = Raylib.GetTime();
+		frames[0] = Ffmpeg.GenerateFrame(frameColors[0]);
 	}
 
 	// Unload the video
 	public static void UnloadVideo()
 	{
 		// Unload all of the frames
-		foreach (Texture2D frame in Frames)
+		foreach (Texture2D frame in frames)
 		{
 			Raylib.UnloadTexture(frame);
 			LoadedFrames--;
@@ -56,7 +60,7 @@ class VideoManager
 
 
 		// Say that we have finished unloading the video
-		VideoLoaded = false;
+		ColorsLoaded = false;
 	}
 
 	// Get information about the video
@@ -92,19 +96,39 @@ class VideoManager
 		double elapsedTime = currentTime - showedLastFrame;
 		bool dueForNextFrame = elapsedTime >= (1d / Fps);
 
-		// Update the current video frame if it's time
+		// Don't do anything if we don't need to do anything
 		if (dueForNextFrame == false) return;
+
+		// Check for if the video has ended
+		if (CurrentFrame >= (FrameCount - 1))
+		{
+			CurrentFrame = FrameCount - 1;
+			Paused = true;
+			return;
+		}
+
+		// Update the current frame
 		CurrentFrame++;
 
 		// Load in the next frame so it doesn't need to be
 		// loaded in at runtime when its needed
 		// TODO: Could load in 2, or 3 instead of just 1
 		//! Could break for higher frame rates
-		Frames[CurrentFrame + 1] = Ffmpeg.GenerateFrame(frameColors[CurrentFrame]);
+		if (FullyLoaded == false)
+		{
+			// Load in the next frame
+			if ((CurrentFrame + 1) >= FrameCount) return;
+			frames[CurrentFrame + 1] = Ffmpeg.GenerateFrame(frameColors[CurrentFrame]);
+			LoadedFrames++;
+
+			// Check for if we're fully loaded now
+			if (LoadedFrames == FrameCount) FullyLoaded = true;
+		}
 	}
 
 	public static void Render()
 	{
 		// Draw the current video frame
+		Raylib.DrawTexture(frames[CurrentFrame], 0, 0, Color.White);
 	}
 }

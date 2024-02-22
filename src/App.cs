@@ -31,7 +31,9 @@ class App
 
 	private static void Update()
 	{
-		VideoManager.Update();
+		if (Raylib.IsKeyPressed(KeyboardKey.Space)) VideoManager.Paused = !VideoManager.Paused;
+
+		if (VideoManager.Paused == false) VideoManager.Update();
 	}
 
 	private static void Render()
@@ -42,8 +44,9 @@ class App
 		VideoManager.Render();
 
 		// Show if the video is loaded or not
+		Raylib.DrawText($"Colors loaded: {VideoManager.ColorsLoaded}", 10, 40, 30, Color.White);
 		Raylib.DrawText($"Loaded {VideoManager.LoadedFrames}/{VideoManager.FrameCount}", 10, 10, 30, Color.White);
-		Raylib.DrawText($"Video loaded: {VideoManager.VideoLoaded}", 10, 40, 30, Color.White);
+		Raylib.DrawText($"Fully loaded: {VideoManager.FullyLoaded}", 10, 80, 30, Color.White);
 
 
 
