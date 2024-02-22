@@ -2,6 +2,7 @@ using Raylib_cs;
 
 class App
 {
+
 	public static void Run()
 	{
 		// Raylib stuff
@@ -11,7 +12,7 @@ class App
 		Raylib.SetTargetFPS(60);
 
 		//! having no logging speeds everything up heaps
-		Raylib.SetTraceLogLevel(TraceLogLevel.Error);
+		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
 
 		Start();
 		while (!Raylib.WindowShouldClose())
@@ -30,7 +31,7 @@ class App
 
 	private static void Update()
 	{
-		
+		VideoManager.Update();
 	}
 
 	private static void Render()
@@ -38,9 +39,13 @@ class App
 		Raylib.BeginDrawing();
 		Raylib.ClearBackground(Color.Magenta);
 
-		//! debug
-		if (VideoManager.VideoLoaded) Raylib.DrawText("done loa", 25, 25, 50, Color.White);
-		else Raylib.DrawText("loading rn (im so exctied)", 25, 25, 50, Color.White);
+		VideoManager.Render();
+
+		// Show if the video is loaded or not
+		Raylib.DrawText($"Loaded {VideoManager.LoadedFrames}/{VideoManager.FrameCount}", 10, 10, 30, Color.White);
+		Raylib.DrawText($"Video loaded: {VideoManager.VideoLoaded}", 10, 40, 30, Color.White);
+
+
 
 		Raylib.EndDrawing();
 	}

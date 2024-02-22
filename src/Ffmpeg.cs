@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Raylib_cs;
 
 class Ffmpeg
@@ -45,17 +44,18 @@ class Ffmpeg
 		return commandOutput;
 	}
 
-	public static Texture2D[] GetFrames()
+	// Get all of the pixels in each frame in a video
+	public static Color[][] GetFrames()
 	{
-		// Store all of the frames
-		Texture2D[] frames = new Texture2D[VideoManager.FrameCount];
-		int frameIndex = 0;
-
 		// Calculate how many bytes one frame takes up
 		// TODO: Get bytes per pixel from the json property thing
 		int pixelCount = VideoManager.Width * VideoManager.Height;
 		int bytesPerPixel = 3; //? Red, Green, Blue
 		int bytesPerFrame = pixelCount * bytesPerPixel;
+
+		// Store all of the frames as their raw bytes
+		byte[][] rawFrames = new byte[VideoManager.FrameCount][];
+		int frameIndex = 0;
 
 		// Create the process/command and run it
 		Process process = new Process();
@@ -73,6 +73,7 @@ class Ffmpeg
 
 		// Pipe the output of the command so that we
 		// can extract the bytes of the video
+		Console.Write("Extracting frame data...\t");
 		using (Stream stream = process.StandardOutput.BaseStream)
 		{
 			// Put all of the incoming data into a buffer
@@ -85,7 +86,8 @@ class Ffmpeg
 
 			while (true)
 			{
-				// Get how many bytes we have read
+				// Get how many bytes we have read, and add
+				// them to the framebuffer array
 				int bytesRead = stream.Read(frameBuffer, totalBytesRead, bytesPerFrame - totalBytesRead);
 				totalBytesRead += bytesRead;
 
@@ -97,61 +99,58 @@ class Ffmpeg
 				// data to make the entre frame
 				if (totalBytesRead == bytesPerFrame)
 				{
-					// Turn the bytes into a texture
-					Texture2D frame = BytesToTexture(frameBuffer);
-					frames[frameIndex] = frame;
+					// Add the bytes for the current frame
+					// into the frames array so they can be 
+					// converted to textures later
+					rawFrames[frameIndex] = frameBuffer;
+					frameBuffer = new byte[bytesPerFrame];
 					frameIndex++;
 
 					// Reset the bytes read for the next frame
 					totalBytesRead = 0;
 				}
 			}
-
 		}
+		Console.WriteLine("Done!");
 
-		// Say that we have finished loading all of the frames
+
+
+		// Convert all of the raw bytes to colors
+		// TODO: Don't use nested for loop
+		Console.Write("Converting colors...\t");
+		Color[][] frameColors = new Color[VideoManager.FrameCount][];
+
+		for (int i = 0; i < rawFrames.Length; i++)
+		{
+			// Store the colors for the current frame
+			Color[] colors = new Color[pixelCount];
+			int colorIndex = 0;
+
+			//? using 3 because 3 bytes for rgb
+			for (int j = 0; j < rawFrames[i].Length - 3; j += 3)
+			{
+				// Get the color data
+				byte red = rawFrames[i][j];
+				byte green = rawFrames[i][j + 1];
+				byte blue = rawFrames[i][j + 2];
+
+				// Add it to the list of colors for the current frame
+				colors[colorIndex] = new Color(red, green, blue, byte.MaxValue);
+				colorIndex++;
+			}
+			frameColors[i] = colors;
+		}
+		Console.WriteLine("Done!");
+
+
+		// Give back all of the frames as colors
 		VideoManager.VideoLoaded = true;
-
-		// Give back all of the frames
-		return frames;
+		return frameColors;
 	}
 
-	// TODO: Do this another way
-	private static Texture2D BytesToTexture(byte[] frameBytes)
+	// Convert pixels to a texture
+	public static Texture2D GenerateFrame(Color[] pixels)
 	{
-		// Make a render texture to draw the image on
-		RenderTexture2D renderTexture = Raylib.LoadRenderTexture(VideoManager.Width, VideoManager.Height);
-
-		// Loop through every pixel in the frame and
-		// draw it on the render texture
-		//? 3 because 3 bytes is one pixel (RGB)
-		// TODO: Get the colors before drawing
-		Raylib.BeginTextureMode(renderTexture);
-		for (int i = 0; i < frameBytes.Length - 3; i += 3)
-		{
-			// Get the current coordinates
-			// from the index
-			int x = i % VideoManager.Width;
-			int y = i / VideoManager.Width;
-
-			// Convert the bytes into a color
-			byte red = frameBytes[i];
-			byte green = frameBytes[i + 1];
-			byte blue = frameBytes[i + 2];
-			Color color = new Color(red, green, blue, byte.MaxValue);
-
-			// Draw the color on the render texture
-			Raylib.DrawPixel(x, y, color);
-		}
-		Raylib.EndTextureMode();
-
-		// Convert the image to a texture
-		// TODO: Don't unload render texture. Save it for every frame and only unload at end
-		Texture2D frame = renderTexture.Texture;
-		Raylib.UnloadRenderTexture(renderTexture);
-
-		// Give back the video frame
-		Console.WriteLine("Loaded frame");
-		return frame;
+		return new Texture2D();
 	}
 }
