@@ -10,6 +10,9 @@ class App
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetTargetFPS(60);
 
+		//! having no logging speeds everything up heaps
+		Raylib.SetTraceLogLevel(TraceLogLevel.Error);
+
 		Start();
 		while (!Raylib.WindowShouldClose())
 		{
@@ -36,15 +39,16 @@ class App
 		Raylib.ClearBackground(Color.Magenta);
 
 		//! debug
-		// Show some text to tell the use that
-		// FFMPEG is busy doing stuff in background
-		// if (Ffmpeg.Working) Raylib.DrawText("busy rn", 25, 25, 50, Color.White);
+		if (VideoManager.VideoLoaded) Raylib.DrawText("done loa", 25, 25, 50, Color.White);
+		else Raylib.DrawText("loading rn (im so exctied)", 25, 25, 50, Color.White);
 
 		Raylib.EndDrawing();
 	}
 
 	private static void CleanUp()
 	{
+		VideoManager.UnloadVideo();
+
 		//! Make sure to do this last.
 		Raylib.CloseWindow();
 	}
