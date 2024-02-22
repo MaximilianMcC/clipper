@@ -23,6 +23,22 @@ clipper.exe <PATH TO FFMPEG> <PATH TO VIDEO>
 # Getting FFMPEG
 This project uses a extremely popular library called `FFMPEG` to handle the video editing. To use it, download the latest version [here](https://github.com/BtbN/FFmpeg-Builds/releases), then extract the folder and copy everything inside `./bin` to a place of your choosing. Launch the program with the first argument being the location to all three files.
 
+# Evidence
+First version of video player working:
+
+https://github.com/MaximilianMcC/clipper/assets/93854112/a6a4c5d5-0d25-4f87-a216-9f0529564baa
+
+**Issues:**
+- shows 18 of them in a strange grid
+- all 18 of them are different sizes
+- no color
+- upside down
+- faster than should be
+- last two frames are chopped off
+
+
 ---
 
 *This project is for my NCEA Level 3 DTS scholarship btw*
+
+
