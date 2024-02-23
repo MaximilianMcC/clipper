@@ -36,8 +36,14 @@ https://github.com/MaximilianMcC/clipper/assets/93854112/a6a4c5d5-0d25-4f87-a216
 - faster than should be
 - last two frames are chopped off
 
+## Converting YUV to RGB
+The reason why the video was black and white was because it was in the YUV420p format. This format was made to be interchangeable between black and white tvs, and color tvs. Since it's not the 11th century or something all monitors are colored so I need to do some sus maths to convert the YUV to RGB
+![yub stuff](https://dexonsystems.com/upload/public/images/BLOG/What%20are%20RGB%20and%20YUV%20color%20spaces/YUV.jpg)
+Since I was only getting the y, that might explain why I see 18 versions of my video. the other 17 were the data for the u and v or something idk thats just a guess. trust
 
 ---
+
+
 
 *This project is for my NCEA Level 3 DTS scholarship btw*
 
