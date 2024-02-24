@@ -17,6 +17,7 @@ class VideoManager
 	public static int FrameCount { get; private set; }
 	public static int Width { get; private set; }
 	public static int Height { get; private set; }
+	public static PixelFormat Format { get; private set; }
 
 	// Frame crap
 	public static int CurrentFrame { get; set; }
@@ -26,14 +27,14 @@ class VideoManager
 
 	// Playback state
 	public static bool Paused { get; set; } = false;
-	// public static bool Looped { get; set; } = true;
+	public static bool Looped { get; set; } = true;
 
 	// Load in the video
 	public static void LoadVideo()
 	{
 		// Extract all of the needed video information
 		GetInformation();
-		Console.WriteLine($"Extracted video information:\nwidth:\t{Width}\nheight:\t{Height}\nfps:\t{Fps}");
+		Console.WriteLine($"Extracted video information:\nwidth:\t{Width}\nheight:\t{Height}\nfps:\t{Fps}\nPixel Format:\t{Format}\n");
 
 		// Get all of the frames as their colors
 		frameColors = Ffmpeg.GetFrames();
@@ -79,7 +80,7 @@ class VideoManager
 		Width = root.GetProperty("streams")[0].GetProperty("width").GetInt32();
 		Height = root.GetProperty("streams")[0].GetProperty("height").GetInt32();
 
-		// Get how many frame it has
+		// Get how many frames it has
 		string frameCountString = root.GetProperty("streams")[0].GetProperty("nb_frames").GetString();
 		FrameCount = int.Parse(frameCountString);
 
@@ -102,9 +103,17 @@ class VideoManager
 		// Check for if the video has ended
 		if (CurrentFrame >= (FrameCount - 1))
 		{
-			CurrentFrame = FrameCount - 1;
-			Paused = true;
-			return;
+			if (Looped)
+			{
+				// Reset the video
+				CurrentFrame = 0;
+			}
+			else
+			{
+				CurrentFrame = FrameCount - 1;
+				Paused = true;
+				return;
+			}
 		}
 
 		// Update the current frame
