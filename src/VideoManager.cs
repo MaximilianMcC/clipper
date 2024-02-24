@@ -14,7 +14,7 @@ class VideoManager
 
 	// Video properties
 	public static double Fps { get; private set; }
-	public static int FrameCount { get; private set; }
+	public static int TotalFrames { get; private set; }
 	public static int Width { get; private set; }
 	public static int Height { get; private set; }
 	public static PixelFormat Format { get; private set; }
@@ -23,7 +23,7 @@ class VideoManager
 	public static int CurrentFrame { get; set; }
 	private static Texture2D[] frames;
 	private static Color[][] frameColors;
-	private static double showedLastFrame;
+	private static double showedLastFrameTime;
 
 	// Playback state
 	public static bool Paused { get; set; } = false;
@@ -38,11 +38,11 @@ class VideoManager
 
 		// Get all of the frames as their colors
 		frameColors = Ffmpeg.GetFrames();
-		frames = new Texture2D[FrameCount];
+		frames = new Texture2D[TotalFrames];
 		
 		// Set the initial time for updating the frames
 		// and generate the first frame
-		showedLastFrame = Raylib.GetTime();
+		showedLastFrameTime = Raylib.GetTime();
 		frames[0] = Ffmpeg.GenerateFrame(frameColors[0]);
 	}
 
@@ -82,7 +82,24 @@ class VideoManager
 
 		// Get how many frames it has
 		string frameCountString = root.GetProperty("streams")[0].GetProperty("nb_frames").GetString();
-		FrameCount = int.Parse(frameCountString);
+		TotalFrames = int.Parse(frameCountString);
+
+		// Get the pixel format
+		string pixelFormatString = root.GetProperty("streams")[0].GetProperty("pix_fmt").GetString();
+		switch (pixelFormatString)
+		{
+			case "yuv420p":
+				Format = PixelFormat.YUV;
+				break;
+			
+			case "rgb24":
+				Format = PixelFormat.RGB;
+				break;
+			
+			default:
+				Format = PixelFormat.UNKNOWN;
+				break;
+		}
 
 		// Get rid of the json stuff
 		json.Dispose();
@@ -92,16 +109,55 @@ class VideoManager
 
 	public static void Update()
 	{	
+		// Update the video
+		PlayVideo();
+	}
+
+	public static void Render()
+	{
+		// Draw the current video frame
+		Raylib.DrawTexture(frames[CurrentFrame], 0, 0, Color.White);
+
+		// Progress bar settings
+		// TODO: Put this at the top or in another class
+		const float padding = 50f;
+		const float padding2 = padding * 2;
+		float width = Raylib.GetScreenWidth() - padding2;
+		float height = 20f;
+		float y = Raylib.GetScreenHeight() - padding;
+
+		// Get the percentage that we are through the video
+		//? percentage = (value / total) * 100
+		float progressPercentage = ((float)CurrentFrame / (float)TotalFrames) * 100f;
+
+		// Get the width that the progress bar should
+		// be according to the progress percentage and
+		// the width of the bar (1% is normally not 1px)
+		float progressWidth = (progressPercentage * width) / 100f;
+
+		// Draw the progress bar
+		// TODO: Lerp it for quicker videos
+		Raylib.DrawRectangleRec(new Rectangle(padding, y, width, height), Color.Gray);
+		Raylib.DrawRectangleRec(new Rectangle(padding, y, progressWidth, height), Color.White);
+
+		//! debug
+		Raylib.DrawText($"{progressPercentage}%\n\n{CurrentFrame}/{TotalFrames}", 10, 150, 30, Color.White);
+	}
+
+
+	// Play/update the video
+	private static void PlayVideo()
+	{
 		// Check for if we need the next frame
 		double currentTime = Raylib.GetTime();
-		double elapsedTime = currentTime - showedLastFrame;
+		double elapsedTime = currentTime - showedLastFrameTime;
 		bool dueForNextFrame = elapsedTime >= (1d / Fps);
 
 		// Don't do anything if we don't need to do anything
 		if (dueForNextFrame == false) return;
 
 		// Check for if the video has ended
-		if (CurrentFrame >= (FrameCount - 1))
+		if (CurrentFrame >= (TotalFrames - 1))
 		{
 			if (Looped)
 			{
@@ -110,7 +166,7 @@ class VideoManager
 			}
 			else
 			{
-				CurrentFrame = FrameCount - 1;
+				CurrentFrame = TotalFrames - 1;
 				Paused = true;
 				return;
 			}
@@ -126,18 +182,29 @@ class VideoManager
 		if (FullyLoaded == false)
 		{
 			// Load in the next frame
-			if ((CurrentFrame + 1) >= FrameCount) return;
+			if ((CurrentFrame + 1) >= TotalFrames) return;
 			frames[CurrentFrame + 1] = Ffmpeg.GenerateFrame(frameColors[CurrentFrame]);
 			LoadedFrames++;
 
 			// Check for if we're fully loaded now
-			if (LoadedFrames == FrameCount) FullyLoaded = true;
+			if (LoadedFrames == TotalFrames) FullyLoaded = true;
 		}
 	}
 
-	public static void Render()
+
+
+
+
+
+
+
+
+	// TODO: Add more formats
+	// TODO: Convert everything into a certain format
+	public enum PixelFormat
 	{
-		// Draw the current video frame
-		Raylib.DrawTexture(frames[CurrentFrame], 0, 0, Color.White);
+		YUV,
+		RGB,
+		UNKNOWN
 	}
 }
