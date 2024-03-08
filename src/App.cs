@@ -28,7 +28,6 @@ class App
 	private static void Start()
 	{
 		// TODO: Count how long it takes to load video
-		Console.WriteLine("Loading video");
 		VideoManager.LoadVideo();
 
 		Console.WriteLine(@$"
