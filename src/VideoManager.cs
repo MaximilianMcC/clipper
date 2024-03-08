@@ -11,11 +11,15 @@ class VideoManager
 	public static int Width { get; private set;}
 	public static int Height { get; private set;}
 
+	// Raw frame data (YUV)
+	private static byte[][] RawFrames;
 
 
+	//? explain yuv: https://www.youtube.com/watch?v=32PPzwPjDZ8	
 
 
 	// Load the video
+	// TODO: Make non-blocking (multi-thread)
 	public static void LoadVideo()
 	{
 		// Use FFPROBE to get all of the required
@@ -25,8 +29,8 @@ class VideoManager
 
 		// Split the video into sections of
 		// frames that contain their YUV data
-		Console.WriteLine("Parsing frames...");
-		ParseFrames();
+		Console.WriteLine("Splitting frames...");
+		SplitFrames();
 
 
 		Console.WriteLine("Done!");
@@ -73,13 +77,17 @@ class VideoManager
 
 	// Split the video into frames
 	//? https://chat.openai.com/share/8d5271d7-c12c-4c8d-acd9-5dfefa305dbc
-	private static void ParseFrames()
+	private static void SplitFrames()
 	{
 		// Figure out how many bytes one frame takes up
 		//? 2 bytes per pixel because 1 for luminance(y) and another for either the u or v (chrominance)
 		int bytesPerPixel = 2;
 		int bytesPerFrame = (Width * Height) * bytesPerPixel;
 
+
+		// Store all of the raw frame data
+		int frameIndex = 0;
+		RawFrames = new byte[FrameCount][];
 
 
 		// Use FFMPEG to get the entire in
@@ -96,7 +104,6 @@ class VideoManager
 			RedirectStandardError = true
 		};
 		process.Start();
-
 
 
 		// Pipe the command output so that we can
@@ -132,8 +139,11 @@ class VideoManager
 				//? Not using guard clause here because its better for readability even thought we 3 indents in now
 				if (totalBytesRead == bytesPerFrame)
 				{
-					// Store the Y, U and V values separately
-					byte[] luminance = new byte[Width * Height];
+					// Add the data to the raw frame
+					// data array so it can be processed
+					// later when its ready to be drawn
+					RawFrames[frameIndex] = frameBuffer;
+					frameIndex++;
 
 					// Reset the total bytes for the
 					// next frame
