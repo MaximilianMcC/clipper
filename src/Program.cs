@@ -6,18 +6,13 @@ class Program
 		// TODO: Check for if there is actually ffmpeg stuff in the directory
 		if (args.Length <= 0)
 		{
-			Console.WriteLine("You are missing the path to FFMPEG. Please download via the instructions in the GitHub repo.");
+			Console.WriteLine("You are missing the path to the video you wish to open.");
 			return;
 		}
-		else if (args.Length <= 1)
-		{
-			Console.WriteLine("You are missing the path to the video you wish to open.");
-			return;	
-		}
 
-		// Set the paths, then run the app
-		VideoManager.FfmpegPath = args[0].Trim();
-		VideoManager.VideoPath = args[1].Trim();
+		// Set the video path
+		// then run the app
+		VideoManager.VideoPath = args[0].Trim();
 		App.Run();
 	}
 }
