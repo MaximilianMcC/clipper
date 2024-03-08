@@ -5,14 +5,16 @@ class App
 
 	public static void Run()
 	{
+		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
+
 		// Raylib stuff
-		// TODO: Switch library
+		// TODO: Switch library (this is NOT a game!!)
 		Raylib.InitWindow(700, 500, "Clipper r1");
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetConfigFlags(ConfigFlags.AlwaysRunWindow);
 		Raylib.SetTargetFPS(60);
 
-		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
+
 
 		Start();
 		while (!Raylib.WindowShouldClose())
@@ -25,7 +27,15 @@ class App
 
 	private static void Start()
 	{
+		// TODO: Count how long it takes to load video
+		Console.WriteLine("Loading video");
+		VideoManager.LoadVideo();
 
+		Console.WriteLine(@$"
+		Video loaded:
+		{VideoManager.Width} x {VideoManager.Height}
+		at {VideoManager.Fps}fps with a total of {VideoManager.FrameCount} frames.
+		");
 	}
 
 	private static void Update()
