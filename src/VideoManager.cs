@@ -1,39 +1,61 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Raylib_cs;
 
 class VideoManager
 {
 	public static string Path { get; set; }
 
+	// Diagnostics stuff
+	public static bool Loading { get; private set; }
+
 	// Video properties
-	public static double Fps { get; private set;}
-	public static int FrameCount { get; private set;}
-	public static int Width { get; private set;}
-	public static int Height { get; private set;}
+	public static double Fps { get; private set; }
+	public static int FrameCount { get; private set; }
+	public static int Width { get; private set; }
+	public static int Height { get; private set; }
 
-	// Raw frame data (YUV)
+	// Frame stuff
 	private static byte[][] RawFrames;
+	private static Texture2D?[] Frames;
+
+	// Playback stuff
+	public static bool Paused { get; set; }
 
 
-	//? explain yuv: https://www.youtube.com/watch?v=32PPzwPjDZ8	
+
+	//? https://chat.openai.com/share/8d5271d7-c12c-4c8d-acd9-5dfefa305dbc
+	//? https://www.youtube.com/watch?v=32PPzwPjDZ8	
+
+
 
 
 	// Load the video
 	// TODO: Make non-blocking (multi-thread)
 	public static void LoadVideo()
 	{
+		Loading = true;
+
 		// Use FFPROBE to get all of the required
 		// information about the video
 		Console.WriteLine("Extracting information...");
-		GetInformation();
+		Thread getInformationThread = new Thread(() => GetInformation());
+		getInformationThread.Start();
+		getInformationThread.Join();
 
 		// Split the video into sections of
 		// frames that contain their YUV data
 		Console.WriteLine("Splitting frames...");
-		SplitFrames();
+		Thread splitFramesThread = new Thread(() => SplitFrames());
+		splitFramesThread.Start();
+		splitFramesThread.Join();
 
+		// Make a place to store all of the frames
+		//? null means the current frame hasn't been loaded yet
+		Frames = new Texture2D?[FrameCount];
 
 		Console.WriteLine("Done!");
+		Loading = false;
 	}
 
 	// Get video properties and whatnot
@@ -76,7 +98,6 @@ class VideoManager
 	}
 
 	// Split the video into frames
-	//? https://chat.openai.com/share/8d5271d7-c12c-4c8d-acd9-5dfefa305dbc
 	private static void SplitFrames()
 	{
 		// Figure out how many bytes one frame takes up
@@ -151,6 +172,57 @@ class VideoManager
 				}
 			}
 
+		}
+	}
+
+
+
+	public static void UpdateVideo()
+	{
+		// Check for if it's paused
+		if (Paused) return;
+
+		// TODO: Check for if we're due for the next frame
+	}
+
+
+
+	public static void RenderVideo()
+	{
+
+
+		
+	}
+
+
+
+	// TODO: Make private
+	// Load in a frame
+	public static void LoadFrame(int index)
+	{
+		// Get the raw yuv data for
+		// the frame we wanna load
+		byte[] rawData = RawFrames[index];
+
+		// Loop over every pixel in the frame
+		int totalPixels = Width * Height;
+		for (int i = 0; i < totalPixels; i++)
+		{
+			// Get the Y value (luminance)
+			byte y = rawData[i];
+
+			// Check for if it should be a U or V
+			//? Every 2 pixels it switches from U to V
+			if (i % 2 == 0)
+			{
+				// U (blue)
+				
+			}
+			else
+			{
+				// V (red)
+
+			}
 		}
 	}
 }

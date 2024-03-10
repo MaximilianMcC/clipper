@@ -3,6 +3,8 @@ using Raylib_cs;
 class App
 {
 
+	private static bool debugMode = true;
+
 	public static void Run()
 	{
 		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
@@ -35,11 +37,23 @@ class App
 		{VideoManager.Width} x {VideoManager.Height}
 		at {VideoManager.Fps}fps with a total of {VideoManager.FrameCount} frames.
 		");
+
+		//! temp
+		VideoManager.LoadFrame(0);
 	}
 
 	private static void Update()
 	{
+		// Toggle debug mode
+		if (Raylib.IsKeyPressed(KeyboardKey.F3) || Raylib.IsKeyPressed(KeyboardKey.Grave)) debugMode = !debugMode;
 
+
+
+		// Update the video
+		if (VideoManager.Loading == false)
+		{
+			VideoManager.UpdateVideo();
+		}
 	}
 
 	private static void Render()
@@ -48,6 +62,20 @@ class App
 		Raylib.ClearBackground(Color.Magenta);
 
 		
+		
+		// Render the video
+		if (VideoManager.Loading == false)
+		{
+			VideoManager.RenderVideo();
+		}
+
+
+
+		// Debug stuff
+		if (debugMode)
+		{
+			Raylib.DrawText("Loading: " + VideoManager.Loading, 10, 10, 30, Color.Black);
+		}
 
 
 
