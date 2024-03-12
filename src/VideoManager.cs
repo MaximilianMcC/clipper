@@ -118,7 +118,7 @@ class VideoManager
 		{
 			//? idk why need to times by 2
 			FileName = "ffmpeg.exe",
-			Arguments = $"-1 {Path} -vf fps={Fps * 2} -f image2pipe -vcodec rawvideo |",
+			Arguments = $"-i {Path} -vf fps={Fps * 2} -f image2pipe -vcodec rawvideo -",
 
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
@@ -198,11 +198,13 @@ class VideoManager
 
 	// TODO: Make private
 	// Load in a frame
+	// TODO: Add dynamic support for formats that aren't 420
 	public static void LoadFrame(int index)
 	{
 		// Get the raw yuv data for
 		// the frame we wanna load
 		byte[] rawData = RawFrames[index];
+
 
 		// Loop over every pixel in the frame
 		int totalPixels = Width * Height;
