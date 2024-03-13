@@ -201,6 +201,7 @@ class VideoManager
 
 	// TODO: Make private
 	// Load in a frame
+	// TODO: Add dynamic support for formats that aren't 420
 	public static void LoadFrame(int index)
 	{
 		// Get the raw yuv data for
@@ -212,6 +213,7 @@ class VideoManager
 		// luminance and chromiance
 		byte[] luminanceData = rawData.Take(totalPixels).ToArray();
 		byte[] chromianceData = rawData.Skip(totalPixels).ToArray();
+
 
 		// Loop over every pixel in the frame
 		// and get its luminance and chromiance
