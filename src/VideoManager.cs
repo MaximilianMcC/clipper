@@ -98,11 +98,16 @@ class VideoManager
 	}
 
 	// Split the video into frames
+	// TODO: Only split a third or something then if we get close to reaching the end of split frames load in the other third, then again untill the whole thing loaded.
+	//! idk if these optimasations are really necesary because the clips are gonna be short they gonna load super fast
+	// TODO: First read the entire byte stream, then once done split it. Don't split as its being read
 	private static void SplitFrames()
 	{
 		// Figure out how many bytes one frame takes up
-		//? 2 bytes per pixel because 1 for luminance(y) and another for either the u or v (chrominance)
-		int bytesPerPixel = 2;
+		// TODO: Actually do that calculation if doing the read entire then split method
+		//? I got 3 from the formula (totalBytes / totalFrames) / (width * height)
+		//? and I did it for multiple videos and got 3 as a result for all of them
+		int bytesPerPixel = 3;
 		int bytesPerFrame = (Width * Height) * bytesPerPixel;
 
 
@@ -118,7 +123,7 @@ class VideoManager
 		{
 			//? idk why need to times by 2
 			FileName = "ffmpeg.exe",
-			Arguments = $"-1 {Path} -vf fps={Fps * 2} -f image2pipe -vcodec rawvideo |",
+			Arguments = $"-i {Path} -vf fps={Fps * 2} -f image2pipe -vcodec rawvideo -",
 
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
@@ -171,7 +176,6 @@ class VideoManager
 					totalBytesRead = 0;
 				}
 			}
-
 		}
 	}
 
@@ -195,7 +199,6 @@ class VideoManager
 	}
 
 
-
 	// TODO: Make private
 	// Load in a frame
 	public static void LoadFrame(int index)
@@ -203,26 +206,20 @@ class VideoManager
 		// Get the raw yuv data for
 		// the frame we wanna load
 		byte[] rawData = RawFrames[index];
+		int totalPixels = Width * Height;
+
+		// Split the raw data into just
+		// luminance and chromiance
+		byte[] luminanceData = rawData.Take(totalPixels).ToArray();
+		byte[] chromianceData = rawData.Skip(totalPixels).ToArray();
 
 		// Loop over every pixel in the frame
-		int totalPixels = Width * Height;
+		// and get its luminance and chromiance
+		// then convert it to RGB so that it
+		// can be baked to the current frame
 		for (int i = 0; i < totalPixels; i++)
-		{
-			// Get the Y value (luminance)
-			byte y = rawData[i];
-
-			// Check for if it should be a U or V
-			//? Every 2 pixels it switches from U to V
-			if (i % 2 == 0)
-			{
-				// U (blue)
-				
-			}
-			else
-			{
-				// V (red)
-
-			}
+		{ 
+			
 		}
 	}
 }
