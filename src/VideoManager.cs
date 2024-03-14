@@ -99,7 +99,7 @@ class VideoManager
 
 	// Split the video into frames
 	// TODO: Only split a third or something then if we get close to reaching the end of split frames load in the other third, then again untill the whole thing loaded.
-	//! idk if these optimasations are really necesary because the clips are gonna be short they gonna load super fast
+	//! idk if these optimizations are really necessary because the clips are gonna be short they gonna load super fast
 	// TODO: First read the entire byte stream, then once done split it. Don't split as its being read
 	private static void SplitFrames()
 	{
@@ -199,29 +199,12 @@ class VideoManager
 	}
 
 
-	// TODO: Make private
-	// Load in a frame
-	// TODO: Add dynamic support for formats that aren't 420
+	// Convert all of the YUV values to
+	// RGB values, then bake them into a 
+	// render texture so the frame can be
+	// drawn.
 	public static void LoadFrame(int index)
 	{
-		// Get the raw yuv data for
-		// the frame we wanna load
-		byte[] rawData = RawFrames[index];
-		int totalPixels = Width * Height;
-
-		// Split the raw data into just
-		// luminance and chromiance
-		byte[] luminanceData = rawData.Take(totalPixels).ToArray();
-		byte[] chromianceData = rawData.Skip(totalPixels).ToArray();
-
-
-		// Loop over every pixel in the frame
-		// and get its luminance and chromiance
-		// then convert it to RGB so that it
-		// can be baked to the current frame
-		for (int i = 0; i < totalPixels; i++)
-		{ 
 			
-		}
 	}
 }
