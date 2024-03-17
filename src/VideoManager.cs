@@ -203,8 +203,57 @@ class VideoManager
 	// RGB values, then bake them into a 
 	// render texture so the frame can be
 	// drawn.
-	public static void LoadFrame(int index)
+	// TODO: Get luminance
+	public static void LoadFrame(int frameIndex)
 	{
-			
+		// Get the data we're working with, and
+		// where we gonna save it
+		byte[] rawData = RawFrames[frameIndex];
+		byte[] yuvData = new byte[Width * Height];
+
+		// Extract the chrominance data indices
+		int chrominanceStartIndex = Width * Height;
+		int chrominanceLength = (Width * Height) / 4;
+
+		// Blue starts just after the luminance values,
+		// and red starts just after the blue values
+		int blueIndex = chrominanceLength;
+		int redIndex = chrominanceStartIndex + chrominanceLength;
+
+		// Loop over every chrominance value
+		int index = 0;
+		for (int i = 0; i < (rawData.Length - chrominanceStartIndex); i++)
+		{
+			// Check for if we are looking at the red
+			// or the blue chrominance values
+			byte chrominance;
+			if (i % 2 == 0)
+			{
+				// Get the blue chrominance value
+				chrominance = rawData[blueIndex];
+				blueIndex++;
+			}
+			else
+			{
+				chrominance = rawData[redIndex];
+				redIndex++;
+			}
+
+			// Add the chrominance to the array
+			// om the x axis
+			yuvData[index] = chrominance;
+			yuvData[index + 1] = chrominance;
+
+			// Add the chrominance value to the array
+			// on the y axis if there is enough room
+			if (index / Width < Height - 1)
+			{
+				yuvData[index + Width] = chrominance;
+				yuvData[index + Width + 1] = chrominance;
+			}
+
+			// Increase the index for the next pixels
+			index += 2;
+		}
 	}
 }
