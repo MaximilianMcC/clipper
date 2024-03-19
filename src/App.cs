@@ -38,7 +38,7 @@ class App
 		
 
 		//! temp
-		testFrame = VideoManager.LoadFrame(10);
+		testFrame = VideoManager.LoadFrame(0);
 	}
 
 	private static void Update()
@@ -75,7 +75,7 @@ class App
 		// Debug stuff
 		if (debugMode)
 		{
-			Raylib.DrawText("Loading: " + VideoManager.Loading, 10, 10, 30, Color.Black);
+			Raylib.DrawText("Loading: " + VideoManager.Loading, 10, 10, 30, Color.White);
 		}
 
 

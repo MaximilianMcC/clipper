@@ -235,11 +235,17 @@ class VideoManager
 
 		// Save the frame texture and get rid of
 		// the render texture
-		Texture2D frameTexture = frameRenderTexture.Texture;
-		Raylib.UnloadRenderTexture(frameRenderTexture);
+		while (true)
+		{
+			if (Raylib.IsRenderTextureReady(frameRenderTexture))
+			{
+				// Give back the frame
+				Texture2D frameTexture = frameRenderTexture.Texture;
+				// Raylib.UnloadRenderTexture(frameRenderTexture);
+				return frameTexture;
+			}
+		}
 
-		// Give back the frame
-		return frameTexture;
 	}
 
 	// 'Expand' all of the pixels in a frame (420)
