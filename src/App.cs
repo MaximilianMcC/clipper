@@ -4,6 +4,8 @@ class App
 {
 
 	private static bool debugMode = true;
+	private static Texture2D testFrame;
+
 
 	public static void Run()
 	{
@@ -31,15 +33,12 @@ class App
 	{
 		// TODO: Count how long it takes to load video
 		VideoManager.LoadVideo();
+		Console.WriteLine("loaded video (sweet as!!)");
 
-		Console.WriteLine(@$"
-		Video loaded:
-		{VideoManager.Width} x {VideoManager.Height}
-		at {VideoManager.Fps}fps with a total of {VideoManager.FrameCount} frames.
-		");
+		
 
 		//! temp
-		VideoManager.LoadFrame(0);
+		testFrame = VideoManager.LoadFrame(10);
 	}
 
 	private static void Update()
@@ -47,6 +46,8 @@ class App
 		// Toggle debug mode
 		if (Raylib.IsKeyPressed(KeyboardKey.F3) || Raylib.IsKeyPressed(KeyboardKey.Grave)) debugMode = !debugMode;
 
+
+		Raylib.DrawTexture(testFrame, 0, 0, Color.White);
 
 
 		// Update the video

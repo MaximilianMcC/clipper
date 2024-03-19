@@ -203,57 +203,90 @@ class VideoManager
 	// RGB values, then bake them into a 
 	// render texture so the frame can be
 	// drawn.
-	// TODO: Get luminance
-	public static void LoadFrame(int frameIndex)
+	public static Texture2D LoadFrame(int frameIndex)
 	{
-		// Get the data we're working with, and
-		// where we gonna save it
-		byte[] rawData = RawFrames[frameIndex];
-		byte[] yuvData = new byte[Width * Height];
+		int pixels = Width * Height;
 
-		// Extract the chrominance data indices
-		int chrominanceStartIndex = Width * Height;
-		int chrominanceLength = (Width * Height) / 4;
+		// Get all of the luminance values
+		byte[] luminance = RawFrames[frameIndex].Take(pixels).ToArray();
 
-		// Blue starts just after the luminance values,
-		// and red starts just after the blue values
-		int blueIndex = chrominanceLength;
-		int redIndex = chrominanceStartIndex + chrominanceLength;
+		// Get all of the chrominance values
+		// TODO: Don't do this rinky Skip and Take linq thing
+		byte[] blueChrominance = ExpandFrame(RawFrames[frameIndex].Skip(pixels).Take(pixels / 4).ToArray());
+		byte[] redChrominance = ExpandFrame(RawFrames[frameIndex].Skip(pixels + (pixels / 4)).Take(pixels / 4).ToArray());
 
-		// Loop over every chrominance value
-		int index = 0;
-		for (int i = 0; i < (rawData.Length - chrominanceStartIndex); i++)
+		// Draw everything to the render texture
+		// TODO: Don't make, then unload new render texture for each frame. reuse
+		RenderTexture2D frameRenderTexture = Raylib.LoadRenderTexture(Width, Height);
+		Raylib.BeginTextureMode(frameRenderTexture);
+		for (int i = 0; i < (pixels); i++)
 		{
-			// Check for if we are looking at the red
-			// or the blue chrominance values
-			byte chrominance;
-			if (i % 2 == 0)
-			{
-				// Get the blue chrominance value
-				chrominance = rawData[blueIndex];
-				blueIndex++;
-			}
-			else
-			{
-				chrominance = rawData[redIndex];
-				redIndex++;
-			}
+			// Get the current pixel
+			Color pixel = YuvToRgb(luminance[i], blueChrominance[i], redChrominance[i]);
 
-			// Add the chrominance to the array
-			// om the x axis
-			yuvData[index] = chrominance;
-			yuvData[index + 1] = chrominance;
+			// Get the coordinates, then draw the pixel
+			// to the screen
+			// TODO: See if nested for loop faster
+			int x = i % Width;
+			int y = i / Width;
+			Raylib.DrawPixel(x, y, pixel);
+		}
+		Raylib.EndTextureMode();
 
-			// Add the chrominance value to the array
-			// on the y axis if there is enough room
-			if (index / Width < Height - 1)
-			{
-				yuvData[index + Width] = chrominance;
-				yuvData[index + Width + 1] = chrominance;
-			}
+		// Save the frame texture and get rid of
+		// the render texture
+		Texture2D frameTexture = frameRenderTexture.Texture;
+		Raylib.UnloadRenderTexture(frameRenderTexture);
 
-			// Increase the index for the next pixels
+		// Give back the frame
+		return frameTexture;
+	}
+
+	// 'Expand' all of the pixels in a frame (420)
+	// TODO: Make it based off the YUV format string
+	private static byte[] ExpandFrame(byte[] data)
+	{
+		// Store the new expanded frame
+		byte[] expandedFrame = new byte[Width * Height];
+
+		// Loop through every pixel that we have
+		// TODO: Use i+2 instead of index
+		int index = 0;
+		for (int i = 0; i < data.Length; i++)
+		{
+			// Get its value
+			byte value = data[i];
+
+			// Set the the pixels on the top
+			expandedFrame[index] = value;
+			expandedFrame[index + 1] = value;
+
+			// Set the pixels on the bottom
+			expandedFrame[index + Width] = value;
+			expandedFrame[index + Width + 1] = value;
+		
+			// Increase the index for next time
 			index += 2;
 		}
+
+		return expandedFrame;
 	}
+
+	// Convert a YUV pixel to an RGB pixel for drawing
+	private static Color YuvToRgb(byte y, byte u, byte v)
+	{
+		// Do the actual conversion
+		int r = (int)(y + 1.403 * (v - 128));
+		int g = (int)(y - 0.344 * (u - 128) - 0.714 * (v - 128));
+		int b = (int)(y + 1.770 * (u - 128));
+
+		// Clamp the values to bytes
+		r = Math.Max(0, Math.Min(255, r));
+		g = Math.Max(0, Math.Min(255, g));
+		b = Math.Max(0, Math.Min(255, b));
+
+		// Give back the color
+		return new Color(r, g, b, byte.MaxValue);
+	}
+
 }
