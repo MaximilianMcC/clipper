@@ -279,19 +279,19 @@ class VideoManager
 	}
 
 	// Convert a YUV pixel to an RGB pixel for drawing
+	//! idk what any of this rubbish does. gpt gave it to me
+	//! https://www.mikekohn.net/file_formats/yuv_rgb_converter.php
+	//! above website kinda works. Bit dodgy in some places
 	private static Color YuvToRgb(byte y, byte u, byte v)
 	{
-		// Do the actual conversion
-		int r = (int)(y + 1.403 * (v - 128));
-		int g = (int)(y - 0.344 * (u - 128) - 0.714 * (v - 128));
-		int b = (int)(y + 1.770 * (u - 128));
+		int c = (int)y - 16;
+    	int d = (int)u - 128;
+    	int e = (int)v - 128;
 
-		// Clamp the values to bytes
-		r = Math.Max(0, Math.Min(255, r));
-		g = Math.Max(0, Math.Min(255, g));
-		b = Math.Max(0, Math.Min(255, b));
+    	byte r = (byte)Math.Clamp((298 * c + 409 * e + 128) >> 8, 0, 255);
+    	byte g = (byte)Math.Clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255);
+    	byte b = (byte)Math.Clamp((298 * c + 516 * d + 128) >> 8, 0, 255);
 
-		// Give back the color
 		return new Color(r, g, b, byte.MaxValue);
 	}
 

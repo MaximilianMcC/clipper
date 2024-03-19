@@ -1,3 +1,4 @@
+using System.Numerics;
 using Raylib_cs;
 
 class App
@@ -47,7 +48,13 @@ class App
 		if (Raylib.IsKeyPressed(KeyboardKey.F3) || Raylib.IsKeyPressed(KeyboardKey.Grave)) debugMode = !debugMode;
 
 
-		Raylib.DrawTexture(testFrame, 0, 0, Color.White);
+		//! debug
+		// Draw the frmae upside down because opengl is stupid
+		// they draw everything upside down
+		Rectangle source = new Rectangle(0, 0, testFrame.Width, -testFrame.Height);
+		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+		Raylib.DrawTexturePro(testFrame, source, destination, Vector2.Zero, 0f, Color.White);
+		//! Raylib.DrawTexture(testFrame, 0, 0, Color.White);
 
 
 		// Update the video
