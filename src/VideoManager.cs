@@ -7,7 +7,7 @@ class VideoManager
 	public static string Path { get; set; }
 
 	// Diagnostics stuff
-	public static bool Loading { get; private set; }
+	public static bool FullyLoaded { get; private set; }
 
 	// Video properties
 	public static double Fps { get; private set; }
@@ -18,9 +18,11 @@ class VideoManager
 	// Frame stuff
 	private static byte[][] RawFrames;
 	private static Texture2D?[] Frames;
+	public static double timeSinceLastFrame = 0d;
 
 	// Playback stuff
 	public static bool Paused { get; set; }
+	public static int CurrentFrame { get; set; }
 
 
 
@@ -34,8 +36,6 @@ class VideoManager
 	// TODO: Make non-blocking (multi-thread)
 	public static void LoadVideo()
 	{
-		Loading = true;
-
 		// Use FFPROBE to get all of the required
 		// information about the video
 		Console.WriteLine("Extracting information...");
@@ -55,7 +55,19 @@ class VideoManager
 		Frames = new Texture2D?[FrameCount];
 
 		Console.WriteLine("Done!");
-		Loading = false;
+
+		timeSinceLastFrame = Raylib.GetTime();
+	}
+
+	public static void UnloadVideo()
+	{
+		// Loop over every frame and unload it
+		foreach (Texture2D frame in Frames)
+		{
+			Raylib.UnloadTexture(frame);
+		}
+
+		// TODO: Reset variables and stuff
 	}
 
 	// Get video properties and whatnot
@@ -188,7 +200,38 @@ class VideoManager
 		// Check for if it's paused
 		if (Paused) return;
 
-		// TODO: Check for if we're due for the next frame
+		// Check for if we're due for the next frame
+		double currentTime = Raylib.GetTime();
+		double elapsedTime = currentTime - timeSinceLastFrame;
+		if (elapsedTime < (1d / Fps)) return;
+
+		// Set the new time so the timer is
+		// reset for the next frame
+		timeSinceLastFrame = currentTime;
+
+
+
+		// Check for if the video isn't fully loaded.
+		// if it's not, we're gonna have to load in
+		// the next frame ahead of time. Basically the
+		// next frame is loaded while we show the current
+		// one so there is no waiting or anything
+		if (FullyLoaded == false)
+		{
+			// Load in the next frame
+			// TODO: Might not need to add 1
+			Texture2D nextFrame = LoadFrame(CurrentFrame + 1);
+			Frames[CurrentFrame + 1] = nextFrame;
+
+			
+		}
+		
+
+
+		// Update the frame index to represent
+		// the frame we just loaded, or are
+		// about to show
+		CurrentFrame++;
 	}
 
 
@@ -199,6 +242,8 @@ class VideoManager
 
 		
 	}
+
+
 
 
 	// Convert all of the YUV values to
@@ -297,4 +342,15 @@ class VideoManager
 		return new Color(r, g, b, byte.MaxValue);
 	}
 
+
+
+	public static string Diagnostics()
+	{
+		//? .Trim removes leading whitespace (indentation)
+		// TODO: Don't do this
+		return $"{Width} x {Height}\n\n" + 
+		$"{Fps} fps ({FrameCount} total frames)\n\n\n" + 
+		$"Fully loaded: {FullyLoaded}\n\n\n" + 
+		$"Paused: {Paused}";
+	}
 }

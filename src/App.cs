@@ -48,20 +48,8 @@ class App
 		if (Raylib.IsKeyPressed(KeyboardKey.F3) || Raylib.IsKeyPressed(KeyboardKey.Grave)) debugMode = !debugMode;
 
 
-		//! debug
-		// Draw the frmae upside down because opengl is stupid
-		// they draw everything upside down
-		Rectangle source = new Rectangle(0, 0, testFrame.Width, -testFrame.Height);
-		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-		Raylib.DrawTexturePro(testFrame, source, destination, Vector2.Zero, 0f, Color.White);
-		//! Raylib.DrawTexture(testFrame, 0, 0, Color.White);
-
-
 		// Update the video
-		if (VideoManager.Loading == false)
-		{
-			VideoManager.UpdateVideo();
-		}
+		VideoManager.UpdateVideo();
 	}
 
 	private static void Render()
@@ -69,20 +57,25 @@ class App
 		Raylib.BeginDrawing();
 		Raylib.ClearBackground(Color.Magenta);
 
+				// Draw the frmae upside down because opengl is stupid
+		// they draw everything upside down
+		Rectangle source = new Rectangle(0, 0, testFrame.Width, -testFrame.Height);
+		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+		Raylib.DrawTexturePro(testFrame, source, destination, Vector2.Zero, 0f, Color.White);
+
 		
 		
 		// Render the video
-		if (VideoManager.Loading == false)
-		{
-			VideoManager.RenderVideo();
-		}
+		VideoManager.RenderVideo();
 
 
 
 		// Debug stuff
 		if (debugMode)
 		{
-			Raylib.DrawText("Loading: " + VideoManager.Loading, 10, 10, 30, Color.White);
+			Vector2 size = Raylib.MeasureTextEx(Raylib.GetFontDefault(), VideoManager.Diagnostics(), 35f, (25f / 10f));
+			Raylib.DrawRectangle(0, 0, (int)size.Y, (int)size.X / 2, new Color(0, 0, 0, 128));
+			Raylib.DrawText(VideoManager.Diagnostics(), 10, 10, 35, Color.White);
 		}
 
 
@@ -92,6 +85,9 @@ class App
 
 	private static void CleanUp()
 	{
+		// Unload the video
+		VideoManager.UnloadVideo();
+
 		// Close the window
 		//! Make sure to do this last.
 		Raylib.CloseWindow();
