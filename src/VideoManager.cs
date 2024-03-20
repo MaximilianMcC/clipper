@@ -7,7 +7,9 @@ class VideoManager
 	public static string Path { get; set; }
 
 	// Diagnostics stuff
+	// TODO: Use array of bool to check if fully loaded, or use Frames array
 	public static bool FullyLoaded { get; private set; }
+	public static int LoadedFrames { get; private set; }
 
 	// Video properties
 	public static double Fps { get; private set; }
@@ -22,6 +24,7 @@ class VideoManager
 
 	// Playback stuff
 	public static bool Paused { get; set; }
+	public static bool Looped { get; set; }
 	public static int CurrentFrame { get; set; }
 
 
@@ -216,17 +219,26 @@ class VideoManager
 		// the next frame ahead of time. Basically the
 		// next frame is loaded while we show the current
 		// one so there is no waiting or anything
+		//! This system only works if the video can't be skipped
 		if (FullyLoaded == false)
 		{
+			Console.WriteLine($"On frame {CurrentFrame}, loading {CurrentFrame + 1}");
 			// Load in the next frame
 			// TODO: Might not need to add 1
 			Texture2D nextFrame = LoadFrame(CurrentFrame + 1);
 			Frames[CurrentFrame + 1] = nextFrame;
 
-			
+			if (CurrentFrame + 1 == FrameCount) FullyLoaded = true;
 		}
-		
 
+		// Check for if we have reached the end of
+		// the video. If we're looping it then replay
+		// it, otherwise keep putting us on the last frame
+		if (CurrentFrame + 1 > FrameCount)
+		{
+			if (Looped) CurrentFrame = 0;
+			else CurrentFrame = CurrentFrame - 1;
+		}
 
 		// Update the frame index to represent
 		// the frame we just loaded, or are
@@ -328,7 +340,8 @@ class VideoManager
 	// Convert a YUV pixel to an RGB pixel for drawing
 	//! idk what any of this rubbish does. gpt gave it to me
 	//! https://www.mikekohn.net/file_formats/yuv_rgb_converter.php
-	//! above website kinda works. Bit dodgy in some places
+	//! above website kinda works. Bit dodgy in some places.
+	//! Perfect color won't really be necessary
 	private static Color YuvToRgb(byte y, byte u, byte v)
 	{
 		int c = (int)y - 16;
@@ -348,9 +361,10 @@ class VideoManager
 	{
 		//? .Trim removes leading whitespace (indentation)
 		// TODO: Don't do this
-		return $"{Width} x {Height}\n\n" + 
-		$"{Fps} fps ({FrameCount} total frames)\n\n\n" + 
-		$"Fully loaded: {FullyLoaded}\n\n\n" + 
-		$"Paused: {Paused}";
+		return $"{Width} x {Height} at {Fps} fps\n\n\n" + 
+		$"Fully loaded: {FullyLoaded}\n\n" + 
+		$"Frame {CurrentFrame}/{FrameCount}\n\n\n" + 
+		$"Paused: {Paused}\n\n" + 
+		$"Looped: {Looped}";
 	}
 }
