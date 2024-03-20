@@ -168,7 +168,9 @@ class VideoManager
 					// Add the data to the raw frame
 					// data array so it can be processed
 					// later when its ready to be drawn
+					//! making new buffer might be slow. could reuse old one
 					RawFrames[frameIndex] = frameBuffer;
+					frameBuffer = new byte[bytesPerFrame];
 					frameIndex++;
 
 					// Reset the total bytes for the
