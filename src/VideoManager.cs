@@ -18,8 +18,8 @@ class VideoManager
 	public static int Height { get; private set; }
 
 	// Frame stuff
-	private static byte[][] RawFrames;
-	private static Texture2D?[] Frames;
+	private static byte[][] rawFrames;
+	private static Texture2D?[] frames;
 	public static double timeSinceLastFrame = 0d;
 
 	// Playback stuff
@@ -55,7 +55,7 @@ class VideoManager
 
 		// Make a place to store all of the frames
 		//? null means the current frame hasn't been loaded yet
-		Frames = new Texture2D?[FrameCount];
+		frames = new Texture2D?[FrameCount];
 
 		Console.WriteLine("Done!");
 
@@ -65,7 +65,7 @@ class VideoManager
 	public static void UnloadVideo()
 	{
 		// Loop over every frame and unload it
-		foreach (Texture2D frame in Frames)
+		foreach (Texture2D frame in frames)
 		{
 			Raylib.UnloadTexture(frame);
 		}
@@ -125,12 +125,6 @@ class VideoManager
 		int bytesPerPixel = 3;
 		int bytesPerFrame = (Width * Height) * bytesPerPixel;
 
-
-		// Store all of the raw frame data
-		int frameIndex = 0;
-		RawFrames = new byte[FrameCount][];
-
-
 		// Use FFMPEG to get the entire in
 		// a massive raw byte array
 		Process process = new Process();
@@ -146,53 +140,46 @@ class VideoManager
 		};
 		process.Start();
 
-
-		// Pipe the command output so that we can
-		// use it
-		using (Stream stream = process.StandardOutput.BaseStream)
+		// Get the whole video as a raw byte array
+		byte[] rawData;
+		using (MemoryStream stream = new MemoryStream())
 		{
-			// Store all of the incoming bytes
-			//? 1024 is a standard size (1kb)
-			byte[] buffer = new byte[1024];
+			// Get all of the bytes at once from
+			// the FFMPEG command output
+			process.StandardOutput.BaseStream.CopyTo(stream);
+			rawData = stream.ToArray();
+		}
 
-			// Keep track of how many bytes
-			// we have read for the current frame
-			int totalBytesRead = 0;
-			byte[] frameBuffer = new byte[bytesPerFrame];
+		rawFrames = new byte[FrameCount][];
+		byte[] currentFrame = new byte[bytesPerFrame];
+		int currentFrameIndex = 0;
 
-			// Continuously pipe data from the video
-			while (true)
+		// Split up the data into frames
+		int frameIndex = 0;
+		for (int i = 0; i < rawData.Length; i++)
+		{
+			// Add the byte to the frame
+			currentFrame[currentFrameIndex] = rawData[i];
+			currentFrameIndex++;
+
+			// Check for if the frame is full
+			if (currentFrameIndex == bytesPerFrame)
 			{
-				// Get how many bytes we have read
-				// and add the read bytes to the frame buffer.
-				// And save the data that doesn't fit in the
-				// current frame for next frame
-				int bytesRead = stream.Read(frameBuffer, totalBytesRead, bytesPerFrame - totalBytesRead);
-				totalBytesRead += bytesRead;
+				// Add the frame to the array of frames
+				rawFrames[frameIndex] = currentFrame;
 
-				// Check for if we have reached the
-				// end of the stream (no more data)
-				if (bytesRead == 0) break;
+				// Reset the current frames index so
+				// we can reuse the array
+				currentFrameIndex = 0;
 
-				// Check for if we have read enough
-				// bytes to make up one entire frame
-				// TODO: Use guard clause
-				//? Not using guard clause here because its better for readability even thought we 3 indents in now
-				if (totalBytesRead == bytesPerFrame)
-				{
-					// Add the data to the raw frame
-					// data array so it can be processed
-					// later when its ready to be drawn
-					//! making new buffer might be slow. could reuse old one
-					RawFrames[frameIndex] = frameBuffer;
-					frameBuffer = new byte[bytesPerFrame];
-					frameIndex++;
-
-					// Reset the total bytes for the
-					// next frame
-					totalBytesRead = 0;
-				}
+				// Move onto the next frame
+				frameIndex++;
 			}
+		}
+
+		for (int i = 0; i < 256; i++)
+		{
+			Console.Write(rawFrames[0][i] + ", ");
 		}
 	}
 
@@ -226,7 +213,7 @@ class VideoManager
 			// Load in the next frame
 			// TODO: Might not need to add 1
 			Texture2D nextFrame = LoadFrame(CurrentFrame + 1);
-			Frames[CurrentFrame + 1] = nextFrame;
+			frames[CurrentFrame + 1] = nextFrame;
 
 			if (CurrentFrame + 1 == FrameCount) FullyLoaded = true;
 		}
@@ -267,12 +254,12 @@ class VideoManager
 		int pixels = Width * Height;
 
 		// Get all of the luminance values
-		byte[] luminance = RawFrames[frameIndex].Take(pixels).ToArray();
+		byte[] luminance = rawFrames[frameIndex].Take(pixels).ToArray();
 
 		// Get all of the chrominance values
 		// TODO: Don't do this rinky Skip and Take linq thing
-		byte[] blueChrominance = ExpandFrame(RawFrames[frameIndex].Skip(pixels).Take(pixels / 4).ToArray());
-		byte[] redChrominance = ExpandFrame(RawFrames[frameIndex].Skip(pixels + (pixels / 4)).Take(pixels / 4).ToArray());
+		byte[] blueChrominance = ExpandFrame(rawFrames[frameIndex].Skip(pixels).Take(pixels / 4).ToArray());
+		byte[] redChrominance = ExpandFrame(rawFrames[frameIndex].Skip(pixels + (pixels / 4)).Take(pixels / 4).ToArray());
 
 		// Draw everything to the render texture
 		// TODO: Don't make, then unload new render texture for each frame. reuse
