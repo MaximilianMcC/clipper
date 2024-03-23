@@ -8,6 +8,10 @@ class Program
 		// installed
 		if (HasFfmpeg() == false) return;
 
+		// Check for if there is actually a video
+		// at the video path
+		if (VideoExists(args) == false) return;
+
 		// Set the video path, then run
 		// the actual program
 		VideoHandler.Path = args[0];
@@ -55,5 +59,24 @@ class Program
 		// Don't continue with normal
 		// program execution
 		return false;
+	}
+
+	// Check for if the video actually exists
+	private static bool VideoExists(string[] args)
+	{
+		// Check for if they actually gave us a path
+		// and for if the file exists
+		if (args.Length < 1 || !File.Exists(args[0]))
+		{
+			// Say that it doesn't exist
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("Could not find file!");
+			Console.ResetColor();
+			Console.WriteLine("Please provide the path (relative or full) to the video you wish to edit as the first argument.");
+
+			return false;
+		}
+
+		return true;
 	}
 }
