@@ -6,10 +6,14 @@ class VideoHandler
 	public static string Path;
 
 	// Video information
-	private static int Width;
-	private static int Height;
-	private static int FrameCount;
-	private static double FrameRate;
+	private static int width;
+	private static int height;
+	private static int frameCount;
+	private static double frameRate;
+
+	// Frame stuff
+	private static byte[] rawData;
+	private static int bytesPerFrame;
 
 	public static void LoadVideo()
 	{
@@ -52,16 +56,16 @@ class VideoHandler
 		JsonElement videoStream = json.RootElement.GetProperty("streams")[0];
 
 		// Get the width and height
-		Width = videoStream.GetProperty("width").GetInt32();
-		Height = videoStream.GetProperty("height").GetInt32();
+		width = videoStream.GetProperty("width").GetInt32();
+		height = videoStream.GetProperty("height").GetInt32();
 
 		// Get the number of frames
-		string frameCount = videoStream.GetProperty("nb_frames").GetString();
-		FrameCount = int.Parse(frameCount);
+		string frameCountString = videoStream.GetProperty("nb_frames").GetString();
+        frameCount = int.Parse(frameCountString);
 
 		// Get the fps
-		string frameRate = videoStream.GetProperty("avg_frame_rate").GetString();
-		FrameRate = double.Parse(frameRate.Split("/")[0]);
+		string frameRateString = videoStream.GetProperty("avg_frame_rate").GetString();
+        frameRate = double.Parse(frameRateString.Split("/")[0]);
 
 
 
@@ -70,19 +74,46 @@ class VideoHandler
 		// TODO: Put in method
 		// TODO: Don't do
 		Console.WriteLine("Extracted information from " + Path + ":");
-		Console.WriteLine("Width:\t\t" + Width);
-		Console.WriteLine("Height:\t\t" + Height);
-		Console.WriteLine("Frames:\t\t" + FrameCount);
-		Console.WriteLine("Frame Rate:\t" + FrameRate);
+		Console.WriteLine("Width:\t\t" + width);
+		Console.WriteLine("Height:\t\t" + height);
+        Console.WriteLine("Frames:\t\t" + VideoHandler.frameCount);
+        Console.WriteLine("Frame Rate:\t" + VideoHandler.frameRate);
 	}
 
 	private static void GetRawFrameData()
 	{
+		// Make the FFMPEG process to get all the data
+		// TODO: Maybe try and get the data in a lower quality so editing is faster
+		Process process = new Process();
+		process.StartInfo = new ProcessStartInfo()
+		{
+			FileName = "ffmpeg.exe",
+			Arguments = $"-i {Path} -vf fps={frameRate} -f image2pipe -vcodec rawvideo -",
 
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true
+		};
+
+		// Run the process and get the output as
+		// a single byte array that can then
+		// be split later when the frames are needed
+		process.Start();
+		using (MemoryStream stream = new MemoryStream())
+		{
+			process.StandardOutput.BaseStream.CopyTo(stream);
+			rawData = stream.ToArray();
+		}
+
+		// Also get how many bytes per frame. This
+		// will be used heaps later on so its better
+		// to calculate it here and not all the time.
+		int bytesPerPixel = 3; //? Y, U , V
+		bytesPerFrame = (width * height) * bytesPerPixel;
 	}
 
 	public static void LoadFrame(int frameIndex)
 	{
-
+		
 	}
 }
