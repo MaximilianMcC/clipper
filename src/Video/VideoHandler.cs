@@ -118,9 +118,10 @@ class VideoHandler
 		int chrominanceLength = (width * height) / 4;
  
 		// Extract all of the channels
+		// TODO: Include start index for chrominance values
 		byte[] luminance = rawData[startIndex..bytesPerFrame];
-		byte[] blueChrominance = ExtractChannel(rawData[(startIndex - chrominanceLength - chrominanceLength)..chrominanceLength]);
-		byte[] redChrominance = ExtractChannel(rawData[(startIndex - chrominanceLength)..chrominanceLength]);
+		byte[] blueChrominance = ExtractChannel(rawData[(startIndex + bytesPerFrame - 2 * chrominanceLength)..(startIndex + bytesPerFrame - chrominanceLength)]);
+		byte[] redChrominance = ExtractChannel(rawData[(startIndex + bytesPerFrame - chrominanceLength)..(startIndex + bytesPerFrame)]);
  
 		// Make the renderTexture to draw the frame on
 		// TODO: Don't make a new render texture each time
@@ -131,14 +132,14 @@ class VideoHandler
 		for (int i = 0; i < (width * height); i++)
 		{	
 			// Convert the pixel from YUV to RGB
-			// Color pixelColor = YuvToRgb(luminance[i], blueChrominance[i], redChrominance[i]);
+			Color pixelColor = YuvToRgb(luminance[i], blueChrominance[i], redChrominance[i]);
  
 			// Get the position of the pixel using the index
 			int y = i / width;
 			int x = i % width;
  
 			// Draw the pixel in the position
-			// Raylib.DrawPixel(x, y, pixelColor);
+			Raylib.DrawPixel(x, y, pixelColor);
 		}
 		Raylib.EndTextureMode();
  
@@ -162,27 +163,43 @@ class VideoHandler
 	private static byte[] ExtractChannel(byte[] data)
 	{
 		// Store the new data
-		byte[] expandedChannel = new byte[data.Length * 2];
+		byte[] expandedChannel = new byte[width * height];
 		// Loop over the unexpanded data and
 		// expand the values and save them
 		// into the new data array
 		// TODO: Don't use dataIndex. Use i
-		int dataIndex = 0;
 		for (int i = 0; i < data.Length; i++)
 		{
 			// Save the data on the x position
-			expandedChannel[i] = data[dataIndex];
-			expandedChannel[i + 1] = data[dataIndex];
+			expandedChannel[i] = data[i];
+			expandedChannel[i + 1] = data[i];
  
 			// Save the data on the y position
-			expandedChannel[i + width] = data[dataIndex];
-			expandedChannel[i + width + 1] = data[dataIndex];
-
-			// Increase the index for next time
-			dataIndex++;
+			expandedChannel[i + width] = data[i];
+			expandedChannel[i + width + 1] = data[i];
 		}
  
 		// Give back the expanded data
 		return expandedChannel;
+	}
+
+	//! idk what any of this is doing. Got from gbt
+	public static Color YuvToRgb(byte y, byte u, byte v)
+	{
+		// Convert YUV to RGB
+		int c = (int)(y - 16);
+		int d = (int)(u - 128);
+		int e = (int)(v - 128);
+		int r = (int)(1.164 * c + 1.596 * e);
+		int g = (int)(1.164 * c - 0.813 * e - 0.391 * d);
+		int b = (int)(1.164 * c + 2.018 * d);
+
+		// Clamp values to 0-255 range
+		r = Math.Min(255, Math.Max(0, r));
+		g = Math.Min(255, Math.Max(0, g));
+		b = Math.Min(255, Math.Max(0, b));
+
+		// Return Color object
+		return new Color((byte)r, (byte)g, (byte)b, byte.MaxValue);
 	}
 }

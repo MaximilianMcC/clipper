@@ -3,6 +3,8 @@ using Raylib_cs;
 
 class App
 {
+	private static Texture2D debugFrame;
+
 	public static void Run()
 	{
 		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
@@ -29,6 +31,9 @@ class App
 	{
 		// Load a video
 		VideoHandler.LoadVideo();
+
+		// debug
+		debugFrame = VideoHandler.LoadFrame(0);
 	}
 
 	private static void Update()
@@ -42,6 +47,8 @@ class App
 		Raylib.ClearBackground(Color.Magenta);
 
 		VideoPlayer.Render();
+
+		Raylib.DrawTexture(debugFrame, 0, 0, Color.White);
 
 		Raylib.EndDrawing();
 	}
