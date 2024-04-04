@@ -33,7 +33,7 @@ class App
 		VideoHandler.LoadVideo();
 
 		// debug
-		debugFrame = VideoHandler.LoadFrame(0);
+		debugFrame = VideoHandler.LoadFrame(50);
 	}
 
 	private static void Update()
@@ -44,11 +44,11 @@ class App
 	private static void Render()
 	{
 		Raylib.BeginDrawing();
-		Raylib.ClearBackground(Color.Magenta);
+		Raylib.ClearBackground(Color.Black);
 
 		VideoPlayer.Render();
 
-		Raylib.DrawTexture(debugFrame, 0, 0, Color.White);
+		Raylib.DrawTextureEx(debugFrame, Vector2.Zero, 0f, 2f, Color.White);
 
 		Raylib.EndDrawing();
 	}
