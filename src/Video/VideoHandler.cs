@@ -4,6 +4,7 @@ using Raylib_cs;
 
 class VideoHandler
 {
+	// I/O stuff
 	public static string Path;
  
 	// Video information
@@ -12,9 +13,10 @@ class VideoHandler
 	private static int frameCount;
 	private static double frameRate;
  
-	// Frame stuff
-	private static byte[] rawData;
+	// Frame and FFMPEG stuff 
+	private static int bytesPerPixel;
 	private static int bytesPerFrame;
+	private static Process extractionProcess;
  
 	public static void LoadVideo()
 	{
@@ -23,7 +25,7 @@ class VideoHandler
  
 		// Extract the entire video to a 
 		// single byte array of YUV data
-		GetRawFrameData();
+		BeginExtractingFrames();
 	}
  
 	private static void GetVideoInformation()
@@ -46,7 +48,6 @@ class VideoHandler
 		process.Start();
 		string processOutput = process.StandardOutput.ReadToEnd();
 		process.WaitForExit();
-		Console.WriteLine(processOutput);
  
 		// Parse it to a JSON document so we
 		// can parse it without a class like
@@ -64,100 +65,97 @@ class VideoHandler
 		frameCount = int.Parse(frameCountString);
  
 		// Get the fps
+		//? fps is both values divided by each other
 		string frameRateString = videoStream.GetProperty("avg_frame_rate").GetString();
-		frameRate = double.Parse(frameRateString.Split("/")[0]);
+		string[] equation = frameRateString.Split("/");
+		frameRate = double.Parse(equation[0]) / double.Parse(equation[1]);
  
  
 		// Print out all the extracted information
 		// TODO: Don't do this in production
-		// TODO: Put in method
+		// TODO: Put in ToString()
 		// TODO: Don't do
 		Console.WriteLine("Extracted information from " + Path + ":");
-		Console.WriteLine("Width:\t\t" + width);
-		Console.WriteLine("Height:\t\t" + height);
-		Console.WriteLine("Frames:\t\t" + VideoHandler.frameCount);
-		Console.WriteLine("Frame Rate:\t" + VideoHandler.frameRate);
+		Console.WriteLine("Size:\t\t" + width + "x" + height);
+		Console.WriteLine("Frames:\t\t" + frameCount + " @ " + frameRate.ToString("#.#") + "fps");
 	}
  
-	private static void GetRawFrameData()
+	private static void BeginExtractingFrames()
 	{
-		// Make the FFMPEG process to get all the data
-		// TODO: Maybe try and get the data in a lower quality so editing is faster
-		Process process = new Process();
-		process.StartInfo = new ProcessStartInfo()
+		// TODO: Make the video be low quality, maybe 480p or 720p to make this process quicker
+
+		// Figure out how many bytes in a pixel,
+		// and how many bytes in a frame
+		bytesPerPixel = 3; //? R, G, B (24 bit)
+		bytesPerFrame = (width * height) * bytesPerPixel;
+
+		// Create the FFMPEG process to extract all
+		// of the information from the video.
+		extractionProcess = new Process();
+		extractionProcess.StartInfo = new ProcessStartInfo()
 		{
+			//? Reading as RGB byte array
 			FileName = "ffmpeg.exe",
-			// Arguments = $"-i {Path} -vf fps={frameRate} -f image2pipe -vcodec rawvideo -",
 			Arguments = $"-i {Path} -vf fps={frameRate} -f image2pipe -pix_fmt rgb24 -vcodec rawvideo -",
- 
+
+			CreateNoWindow = true,
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
- 
-		// Run the process and get the output as
-		// a single byte array that can then
-		// be split later when the frames are needed
-		process.Start();
-		using (MemoryStream stream = new MemoryStream())
-		{
-			process.StandardOutput.BaseStream.CopyTo(stream);
-			rawData = stream.ToArray();
-		}
- 
-		// Also get how many bytes per frame. This
-		// will be used heaps later on so its better
-		// to calculate it here and not all the time.
-		int bytesPerPixel = 1 + 2; //? Y, then U and V
-		bytesPerFrame = (width * height) * bytesPerPixel;
 
-		//! debug
-		// Say how many bytes we extracted
-		// TODO: Calculate expected length and check it against this to see if its correct
-		Console.WriteLine(rawData.Length);
+		// Start the process. When bytes are
+		// needed they will be extracted. This way
+		// there is no rush for the process
+		// to get all of the bytes out quickly.
+		extractionProcess.Start();
 	}
  
 	public static Texture2D LoadFrame(int frameIndex)
 	{
-		// Get the raw bytes for the current frame
-		int frameOffset = (frameIndex - 1) * bytesPerFrame;
+		// Store all the bytes for the current frame
 		byte[] frameBytes = new byte[bytesPerFrame];
-		Array.Copy(rawData, frameOffset, frameBytes, 0, bytesPerFrame);
 
-		// Make the renderTexture to draw the frame on
-		// TODO: Don't make a new render texture each time
+		// Begin to pipe the data from the process
+		// TODO: Store the stream as private class variable thingy so we can seek and stuff. position change and keep it without doing maths
+		using (Stream stream = extractionProcess.StandardOutput.BaseStream)
+		{
+			// Keep reading until we have enough
+			// bytes to make up our frame
+			int bytesRead = 0;
+			while (bytesRead < bytesPerFrame)
+			{
+				// Read the byte
+				byte newByte = (byte)stream.ReadByte();
+
+				// Add the byte to the frame
+				frameBytes[bytesRead] = newByte;
+				bytesRead++;
+			}
+		}
+
+		// Convert all of the bytes to RGB, then draw
+		// them to the texture so they can be displayed
+		// TODO: Private render texture. don't make new one 
 		RenderTexture2D frame = Raylib.LoadRenderTexture(width, height);
 		Raylib.BeginTextureMode(frame);
- 
-		// Loop through every pixel in the frame
-		int byteIndex = 0;
+		int index = 0;
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
 			{
-				// Get the color of the pixel here
-				Color pixel = new Color(frameBytes[byteIndex], frameBytes[byteIndex + 1], frameBytes[byteIndex + 2], byte.MaxValue);
-				byteIndex += 3;
+				// Get the current pixel
+				Color pixel = new Color(frameBytes[index], frameBytes[index + 1], frameBytes[index + 2], byte.MaxValue);
+				index++;
 
-				// Draw the pixel to the render texture
+				// Draw it
 				Raylib.DrawPixel(x, y, pixel);
 			}
 		}
 		Raylib.EndTextureMode();
- 
-		// When the render texture has finished
-		// rendering the frame then save it
-		Texture2D finalFrame;
-		while (true)
-		{
-			// If its still loading then do nothing
-			if (!Raylib.IsRenderTextureReady(frame)) continue;
-			// Save the texture
-			finalFrame = frame.Texture;
-			break;
-		}
- 
-		// Give back the final frame
-		return finalFrame;
+
+		// Give back the frame
+		// TODO: Unload the texture
+		return frame.Texture;
 	}
 }
