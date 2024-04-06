@@ -16,7 +16,7 @@ class VideoHandler
 	// Frame and FFMPEG stuff 
 	private static int bytesPerPixel;
 	private static int bytesPerFrame;
-	private static Process extractionProcess;
+	private static Stream extractionStream;
  
 	public static void LoadVideo()
 	{
@@ -91,7 +91,7 @@ class VideoHandler
 
 		// Create the FFMPEG process to extract all
 		// of the information from the video.
-		extractionProcess = new Process();
+		Process extractionProcess = new Process();
 		extractionProcess.StartInfo = new ProcessStartInfo()
 		{
 			//? Reading as RGB byte array
@@ -104,34 +104,34 @@ class VideoHandler
 			RedirectStandardError = true
 		};
 
-		// Start the process. When bytes are
-		// needed they will be extracted. This way
-		// there is no rush for the process
-		// to get all of the bytes out quickly.
+		// Start the process/run the command
 		extractionProcess.Start();
+
+		// Get the byte stream that we're piping from
+		// TODO: Close the stream
+		extractionStream = extractionProcess.StandardOutput.BaseStream;
 	}
  
+	// TODO: new command for batch of frames
 	public static Texture2D LoadFrame(int frameIndex)
 	{
-		// Store all the bytes for the current frame
-		byte[] frameBytes = new byte[bytesPerFrame];
+		// Make a buffer to store all of the
+		// raw bytes in the frame
+		byte[] frameBuffer = new byte[bytesPerFrame];
 
-		// Begin to pipe the data from the process
-		// TODO: Store the stream as private class variable thingy so we can seek and stuff. position change and keep it without doing maths
-		using (Stream stream = extractionProcess.StandardOutput.BaseStream)
+		// Get the position of the data in the stream
+		// based off the frameIndex then go to it
+		long position = frameIndex * bytesPerFrame;
+		extractionStream.Seek(position, SeekOrigin.Begin);
+
+		// Pipe the frame data
+		int bytesRead = extractionStream.Read(frameBuffer, 0, bytesPerFrame);
+
+		// Check for if we've reached the end of the stream
+		if (bytesRead == 0)
 		{
-			// Keep reading until we have enough
-			// bytes to make up our frame
-			int bytesRead = 0;
-			while (bytesRead < bytesPerFrame)
-			{
-				// Read the byte
-				byte newByte = (byte)stream.ReadByte();
-
-				// Add the byte to the frame
-				frameBytes[bytesRead] = newByte;
-				bytesRead++;
-			}
+			// TODO: Actually do something
+			Console.WriteLine("Reached end of stream");
 		}
 
 		// Convert all of the bytes to RGB, then draw
@@ -145,7 +145,7 @@ class VideoHandler
 			for (int x = 0; x < width; x++)
 			{
 				// Get the current pixel
-				Color pixel = new Color(frameBytes[index], frameBytes[index + 1], frameBytes[index + 2], byte.MaxValue);
+				Color pixel = new Color(frameBuffer[index], frameBuffer[index + 1], frameBuffer[index + 2], byte.MaxValue);
 				index++;
 
 				// Draw it
@@ -154,8 +154,12 @@ class VideoHandler
 		}
 		Raylib.EndTextureMode();
 
-		// Give back the frame
-		// TODO: Unload the texture
-		return frame.Texture;
+		// TODO: Don't use busy loop
+		while (true)
+		{
+			// Give back the frame
+			// TODO: Unload the texture
+			if (Raylib.IsRenderTextureReady(frame)) return frame.Texture;
+		}
 	}
 }
