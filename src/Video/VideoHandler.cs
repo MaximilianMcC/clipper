@@ -83,7 +83,7 @@ class VideoHandler
 		Console.WriteLine("Frames:\t\t" + frameCount + " @ " + frameRate.ToString("#.#") + "fps");
 	}
  
-	public static Texture2D LoadFrameBatch(int frameIndex)
+	public static void LoadFrameBatch(int frameIndex)
 	{
 		// Get how many frames we're going to load
 		int batchSize = 10;
@@ -129,13 +129,14 @@ class VideoHandler
 
 		// Convert all of the bytes to RGB, then draw
 		// them to the texture so they can be displayed
-		RenderTexture2D renderTexture = Raylib.LoadRenderTexture(width, height);
 
 		// Loop through all frames and draw it to the render texture
 		for (int i = 0; i < batchCount; i++)
 		{
 			//? no need to clear the screen because each frame is different
+			RenderTexture2D renderTexture = Raylib.LoadRenderTexture(width, height);
 			Raylib.BeginTextureMode(renderTexture);
+			Raylib.ClearBackground(Color.Red);
 
 			// Loop through every pixel in the frame
 			// TODO: Don't use nested loop
@@ -146,27 +147,23 @@ class VideoHandler
 				{
 					// Get the color of the current pixel
 					Color pixel = new Color(frames[i][pixelIndex], frames[i][pixelIndex + 1], frames[i][pixelIndex + 2], byte.MaxValue);
-					pixelIndex += 3;
+					pixelIndex++;
 
 					// Draw the pixel
 					Raylib.DrawPixel(x, y, pixel);
 				}
 			}
 
-			Raylib.EndDrawing();
+			Raylib.EndTextureMode();
 
 			// TODO: Use a busy loop and only do once finished drawing
 			// Add the frame to the list of frames
-			Frames[frameIndex + i] = renderTexture.Texture;
-		}
+			Texture2D bakedFrame = renderTexture.Texture;
+			Frames[frameIndex + i] = bakedFrame;
 
 		// Unload the render texture now that we've
 		// drawn all of the frames
 		Raylib.UnloadRenderTexture(renderTexture);
-		
-
-
-		//! debug
-		return Frames[frameIndex];
+		}
 	}
 }
