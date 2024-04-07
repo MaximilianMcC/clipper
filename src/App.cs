@@ -33,7 +33,7 @@ class App
 		VideoHandler.LoadVideo();
 
 		// debug
-		debugFrame = VideoHandler.LoadFrame(50);
+		debugFrame = VideoHandler.LoadFrameBatch(50);
 	}
 
 	private static void Update()
