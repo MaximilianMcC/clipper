@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using Raylib_cs;
 
@@ -82,13 +83,16 @@ class VideoHandler
 		Console.WriteLine("Size:\t\t" + width + "x" + height);
 		Console.WriteLine("Frames:\t\t" + frameCount + " @ " + frameRate.ToString("#.#") + "fps");
 	}
- 
+	
+	// TODO: Parallel.For or whatever it is
+	// TODO: Make a second thread to load the video in the background, and also have a method to immediately load 10 or so frames so that if you jump around the video and have stuff loaded
 	public static void LoadFrameBatch(int frameIndex)
 	{
-		// Get how many frames we're going to load
+		// TODO: Make adjust for if it goes over length
 		int batchSize = 10;
-		int remainingFrames = frameCount - (frameIndex * batchSize);
-		int batchCount = Math.Min(batchSize, remainingFrames);
+
+		// Store all of the frames as a byte array
+		byte[][] allFrames = new byte[batchSize][];
 
 		// Create the FFMPEG process to extract the
 		// necessary frames from the video
@@ -97,73 +101,36 @@ class VideoHandler
 		{
 			//? Reading as RGB byte array
 			FileName = "ffmpeg.exe",
-			Arguments = $"-i {Path} -vf \"select=between(n\\,{frameIndex}\\,{frameIndex + batchCount}),format=rgb24\" -f image2pipe -vcodec rawvideo -",
+			// Arguments = $"-i {Path} -vf \"select='between(n\\,{frameIndex * batchSize}\\,{(frameIndex + 1) * batchSize - 1})'\" -pix_fmt rgb24 -f rawvideo -",
+            Arguments = $"-i \"{Path}\" -vf select='gte(n\\,{frameIndex})' -vframes {batchSize} -f image2pipe -pix_fmt rgb24 -vcodec rawvideo -",
 
 			CreateNoWindow = true,
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
-
-		// Start the extraction process, and open a 
-		// stream to pipe the data from
 		extractionProcess.Start();
+
+		// Loop through every frame that we need to load in
 		Stream stream = extractionProcess.StandardOutput.BaseStream;
-
-		// Loop through every frame and pipe it
-		byte[][] frames = new byte[batchCount][];
-		for (int i = 0; i < batchCount; i++)
+		for (int i = 0; i < batchSize; i++)
 		{
-			// Make a buffer to store all the bytes
-			// for the current frame
-			frames[i] = new byte[bytesPerFrame];
+			// Make the buffer for the current frame
+			byte[] frameBuffer = new byte[bytesPerFrame];
+			int totalBytes = 0;
 
-			// Pipe the frame
-			int bytesRead = stream.Read(frames[i], 0, bytesPerFrame);
-			Console.WriteLine($"Read {bytesRead} bytes from frame {frameIndex + i}");
-		}
-
-		// Close the stream since we've gotten
-		// all the data we need
-		stream.Close();
-
-		// Convert all of the bytes to RGB, then draw
-		// them to the texture so they can be displayed
-
-		// Loop through all frames and draw it to the render texture
-		for (int i = 0; i < batchCount; i++)
-		{
-			//? no need to clear the screen because each frame is different
-			RenderTexture2D renderTexture = Raylib.LoadRenderTexture(width, height);
-			Raylib.BeginTextureMode(renderTexture);
-			Raylib.ClearBackground(Color.Red);
-
-			// Loop through every pixel in the frame
-			// TODO: Don't use nested loop
-			int pixelIndex = 0;
-			for (int y = 0; y < height; y++)
+			// Keep on piping in data until its full
+			while (totalBytes < bytesPerFrame)
 			{
-				for (int x = 0; x < width; x++)
-				{
-					// Get the color of the current pixel
-					Color pixel = new Color(frames[i][pixelIndex], frames[i][pixelIndex + 1], frames[i][pixelIndex + 2], byte.MaxValue);
-					pixelIndex++;
+				// Get how many bytes we need to pipe
+				int chunk = 1024; //? 1 kilobyte 
+				int neededBytes = Math.Max(totalBytes - bytesPerFrame, chunk);
 
-					// Draw the pixel
-					Raylib.DrawPixel(x, y, pixel);
-				}
+				// Actually pipe the data
+				int bytesRead = stream.Read(frameBuffer, 0, neededBytes);
+				Console.WriteLine("read " + bytesRead + " bydes (needed bytes is) " + neededBytes);
 			}
-
-			Raylib.EndTextureMode();
-
-			// TODO: Use a busy loop and only do once finished drawing
-			// Add the frame to the list of frames
-			Texture2D bakedFrame = renderTexture.Texture;
-			Frames[frameIndex + i] = bakedFrame;
-
-		// Unload the render texture now that we've
-		// drawn all of the frames
-		Raylib.UnloadRenderTexture(renderTexture);
 		}
+		stream.Close();
 	}
 }

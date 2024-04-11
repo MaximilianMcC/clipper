@@ -3,6 +3,9 @@ using Raylib_cs;
 
 class App
 {
+	private static Texture2D debugFrame;
+	private static int debugIndex = 0;
+
 	public static void Run()
 	{
 		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
@@ -12,7 +15,7 @@ class App
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetConfigFlags(ConfigFlags.AlwaysRunWindow);
 		Raylib.InitWindow(700, 500, "Clipper r2");
-		Raylib.SetTargetFPS(60);
+		// Raylib.SetTargetFPS(60);
 
 
 
@@ -37,6 +40,12 @@ class App
 	private static void Update()
 	{
 		VideoPlayer.Update();
+
+		if (Raylib.IsKeyDown(KeyboardKey.Space))
+		{
+			// debugFrame = VideoHandler.LoadFrameBatch(debugIndex);
+			debugIndex++;
+		}
 	}
 
 	private static void Render()
@@ -48,8 +57,11 @@ class App
 
 		// !debug
 		// Raylib.DrawTextureEx(VideoHandler.Frames[50], Vector2.Zero, 0f, 1f, Color.White);
-		Raylib.DrawTexture(VideoHandler.Frames[51], 0, 0, Color.White);
+		// Raylib.DrawTexture(VideoHandler.Frames[51], 0, 0, Color.White);
+		Raylib.DrawTexture(debugFrame, 0, 0, Color.White);
+		Raylib.DrawText(debugIndex.ToString(), 500, 150, 30, Color.White);
 
+		Raylib.DrawFPS(10, 10);
 		Raylib.EndDrawing();
 	}
 
