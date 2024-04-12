@@ -117,20 +117,62 @@ class VideoHandler
 		{
 			// Make the buffer for the current frame
 			byte[] frameBuffer = new byte[bytesPerFrame];
-			int totalBytes = 0;
+			int totalBytesRead = 0;
 
 			// Keep on piping in data until its full
-			while (totalBytes < bytesPerFrame)
+			while (totalBytesRead < bytesPerFrame)
 			{
 				// Get how many bytes we need to pipe
 				int chunk = 1024; //? 1 kilobyte 
-				int neededBytes = Math.Max(totalBytes - bytesPerFrame, chunk);
+				int neededBytes = Math.Max(totalBytesRead - bytesPerFrame, chunk);
 
 				// Actually pipe the data
+				//? this populates the buffer. Kinda acts like a list
 				int bytesRead = stream.Read(frameBuffer, 0, neededBytes);
-				Console.WriteLine("read " + bytesRead + " bydes (needed bytes is) " + neededBytes);
+
+				// Update the total bytes read so that
+				// we know our current position in the buffer
+				totalBytesRead += bytesRead;
 			}
+			
+			// Set the frame data from the buffer
+			allFrames[i] = frameBuffer;
 		}
 		stream.Close();
+
+		// Loop through every frame and draw it
+		RenderTexture2D renderTexture = Raylib.LoadRenderTexture(width, height);
+		for (int i = 0; i < batchSize; i++)
+		{
+			// Begin drawing, and also clear the
+			// texture to get rid of the previous
+			// frame texture
+			Raylib.BeginTextureMode(renderTexture);
+			Raylib.ClearBackground(Color.Lime);
+
+			// Loop through every pixel in the frame and
+			// get its color, then draw it
+			int pixelIndex = 0;
+			for (int y = 0; y < height; y++)
+			{
+				for (int x = 0; x < width; x++)
+				{
+					Color pixel = new Color(allFrames[i][pixelIndex], allFrames[i][pixelIndex + 1], allFrames[i][pixelIndex + 2], byte.MaxValue);
+					pixelIndex += 3;
+
+					Raylib.DrawPixel(x, y, pixel);
+				}
+			}
+
+			// End drawing
+			Raylib.EndTextureMode();
+
+			// Get the frame then add it to the
+			// baked frames array
+			Texture2D frame = renderTexture.Texture;
+			Frames[frameIndex + i] = frame;
+			Console.WriteLine("Loaded frame " + (frameIndex + i));
+		}
+		Raylib.UnloadRenderTexture(renderTexture);
 	}
 }

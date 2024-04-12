@@ -3,8 +3,7 @@ using Raylib_cs;
 
 class App
 {
-	private static Texture2D debugFrame;
-	private static int debugIndex = 0;
+	private static int debugIndex = 49;
 
 	public static void Run()
 	{
@@ -41,11 +40,8 @@ class App
 	{
 		VideoPlayer.Update();
 
-		if (Raylib.IsKeyDown(KeyboardKey.Space))
-		{
-			// debugFrame = VideoHandler.LoadFrameBatch(debugIndex);
-			debugIndex++;
-		}
+		if (Raylib.IsKeyPressed(KeyboardKey.Right)) debugIndex++;
+		if (Raylib.IsKeyPressed(KeyboardKey.Left)) debugIndex--;
 	}
 
 	private static void Render()
@@ -58,7 +54,7 @@ class App
 		// !debug
 		// Raylib.DrawTextureEx(VideoHandler.Frames[50], Vector2.Zero, 0f, 1f, Color.White);
 		// Raylib.DrawTexture(VideoHandler.Frames[51], 0, 0, Color.White);
-		Raylib.DrawTexture(debugFrame, 0, 0, Color.White);
+		Raylib.DrawTexture(VideoHandler.Frames[debugIndex], 0, 0, Color.White);
 		Raylib.DrawText(debugIndex.ToString(), 500, 150, 30, Color.White);
 
 		Raylib.DrawFPS(10, 10);
