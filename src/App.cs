@@ -3,7 +3,7 @@ using Raylib_cs;
 
 class App
 {
-	private static int debugIndex = 49;
+	private static int debugIndex = 0;
 
 	public static void Run()
 	{
@@ -14,9 +14,6 @@ class App
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetConfigFlags(ConfigFlags.AlwaysRunWindow);
 		Raylib.InitWindow(700, 500, "Clipper r2");
-		// Raylib.SetTargetFPS(60);
-
-
 
 		Start();
 		while (!Raylib.WindowShouldClose())
@@ -52,9 +49,9 @@ class App
 		VideoPlayer.Render();
 
 		// !debug
-		// Raylib.DrawTextureEx(VideoHandler.Frames[50], Vector2.Zero, 0f, 1f, Color.White);
+		Raylib.DrawTextureEx(VideoHandler.Frames[debugIndex], Vector2.Zero, 0f, 0.3f, Color.White);
 		// Raylib.DrawTexture(VideoHandler.Frames[51], 0, 0, Color.White);
-		Raylib.DrawTexture(VideoHandler.Frames[debugIndex], 0, 0, Color.White);
+		// Raylib.DrawTexture(VideoHandler.Frames[debugIndex], 0, 0, Color.White);
 		Raylib.DrawText(debugIndex.ToString(), 500, 150, 30, Color.White);
 
 		Raylib.DrawFPS(10, 10);
