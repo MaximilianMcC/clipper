@@ -3,7 +3,6 @@ using Raylib_cs;
 
 class App
 {
-	private static int debugIndex = 0;
 
 	public static void Run()
 	{
@@ -26,19 +25,16 @@ class App
 
 	private static void Start()
 	{
-		// Load a video
+		// Load the clip, then play it
 		VideoHandler.LoadVideo();
 
-		// !debug
-		VideoHandler.LoadFrameBatch(1, 10);
+		VideoPlayer.Playing = true;
+		VideoPlayer.Volume = 0f;
 	}
 
 	private static void Update()
 	{
 		VideoPlayer.Update();
-
-		if (Raylib.IsKeyPressed(KeyboardKey.Right)) debugIndex++;
-		if (Raylib.IsKeyPressed(KeyboardKey.Left)) debugIndex--;
 	}
 
 	private static void Render()
@@ -47,15 +43,6 @@ class App
 		Raylib.ClearBackground(Color.Magenta);
 
 		VideoPlayer.Render();
-
-		// !debug
-		// Raylib.DrawTextureEx(VideoHandler.Frames[debugIndex], Vector2.Zero, 0f, 0.3f, Color.White);
-		Rectangle source = new Rectangle(0, 0, VideoHandler.Width, -VideoHandler.Height);
-		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
-		Raylib.DrawTexturePro(VideoHandler.Frames[debugIndex], source, destination, Vector2.Zero, 0f, Color.White);
-
-
-		Raylib.DrawText(debugIndex.ToString(), 500, 150, 30, Color.White);
 
 		Raylib.DrawFPS(10, 10);
 		Raylib.EndDrawing();

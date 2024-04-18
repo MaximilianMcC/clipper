@@ -6,16 +6,19 @@ using Raylib_cs;
 class VideoHandler
 {
 	// I/O stuff
-	public static string Path;
+	public static string Path { get; set; }
 
 	// Video information
-	public static int Width;
-	public static int Height;
-	private static int frameCount;
-	private static double frameRate;
+	public static int Width { get; private set; }
+	public static int Height { get; private set; }
+	public static double FrameRate { get; private set; } 
+	public static int FrameCount { get; private set; }
+
+	// Important stuff
+	public static Texture2D[] Frames { get; private set; }
+	public static Music Audio { get; private set; }
 
 	// Frame stuff
-	public static Texture2D[] Frames;
 	private static int bytesPerPixel;
 	private static int bytesPerFrame;
 	private static RenderTexture2D renderTexture;
@@ -26,10 +29,15 @@ class VideoHandler
 		GetVideoInformation();
 
 		// Store all of the frames
-		Frames = new Texture2D[frameCount];
+		Frames = new Texture2D[FrameCount];
 
 		// Make a render texture for baking to
-		// renderTexture = Raylib.LoadRenderTexture(Width, Height);
+		renderTexture = Raylib.LoadRenderTexture(Width, Height);
+
+		// Load the audio
+		// TODO: Use raylib audio and not music
+		// TODO: Use ffmpeg to get the raw bytes of it
+		// Audio = Raylib.LoadMusicStream(Path);
 	}
 
 	private static void GetVideoInformation()
@@ -66,13 +74,13 @@ class VideoHandler
 
 		// Get the number of frames
 		string frameCountString = videoStream.GetProperty("nb_frames").GetString();
-		frameCount = int.Parse(frameCountString);
+		FrameCount = int.Parse(frameCountString);
 
 		// Get the fps
 		//? fps is both values divided by each other
 		string frameRateString = videoStream.GetProperty("avg_frame_rate").GetString();
 		string[] equation = frameRateString.Split("/");
-		frameRate = double.Parse(equation[0]) / double.Parse(equation[1]);
+		FrameRate = double.Parse(equation[0]) / double.Parse(equation[1]);
 
 		// Figure out how many bytes in a pixel,
 		// and how many bytes in a frame
@@ -85,7 +93,7 @@ class VideoHandler
 		// TODO: Don't do
 		Console.WriteLine("Extracted information from " + Path + ":");
 		Console.WriteLine("Size:\t\t" + Width + "x" + Height);
-		Console.WriteLine("Frames:\t\t" + frameCount + " @ " + frameRate.ToString("#.#") + "fps");
+		Console.WriteLine("Frames:\t\t" + FrameCount + " @ " + FrameRate.ToString("#.#") + "fps");
 	}
 
 	public static void LoadFrameBatch(int frameIndex, int framesToLoad)
@@ -95,12 +103,7 @@ class VideoHandler
 		process.StartInfo = new ProcessStartInfo()
 		{
 			FileName = "ffmpeg.exe",
-			// Arguments = $"-i {Path} -vf \"select='gte(n,{frameIndex})&&lt(n,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
-			// Arguments = $"-i {Path} -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
-			// Arguments = $"-i {Path} -vf select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)' -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
-			// Arguments = $"-i {Path} -vf \"select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
-			// Arguments = $"-i {Path} -vf \"select='gte(n\\,{frameIndex})&<(n\\,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
-			Arguments = $"-i {Path} -vf \"select='gte(n\\,{frameIndex})*lt(n\\,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			Arguments = $"-i {Path} -vf select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)' -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
 
 			UseShellExecute = false,
 			RedirectStandardError = true,
@@ -129,7 +132,6 @@ class VideoHandler
 				{
 					// Bake the frame and save it
 					Frames[frameIndex + i] = GenerateFrame(frameBuffer);
-					Console.WriteLine($"Read frame {frameIndex + i + 1}/{frameCount}");
 					break;
 				}
 			}
@@ -138,17 +140,14 @@ class VideoHandler
 		// TODO: Wait for exit
 		//! process isn't ending for some reason
 		//! Process will still be running in background
+		// TODO: Figure out if the process is actually still running in background
 		// process.WaitForExit();
-
-		Console.WriteLine("Done!");
 	}
 
 	// Bake a texture to a texture
 	//? Because OpenGL stink its drawn upside down so when rendering it needs to be flipped
 	private static Texture2D GenerateFrame(byte[] frameData)
 	{
-		renderTexture = Raylib.LoadRenderTexture(Width, Height);
-
 		// Loop through every pixel in the frame and draw it
 		Raylib.BeginTextureMode(renderTexture);
 		for (int y = 0; y < Height; y++)
