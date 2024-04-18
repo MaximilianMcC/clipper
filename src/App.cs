@@ -30,7 +30,7 @@ class App
 		VideoHandler.LoadVideo();
 
 		// !debug
-		VideoHandler.LoadFrameBatch(50);
+		VideoHandler.LoadFrameBatch(1, 10);
 	}
 
 	private static void Update()
@@ -49,9 +49,12 @@ class App
 		VideoPlayer.Render();
 
 		// !debug
-		Raylib.DrawTextureEx(VideoHandler.Frames[debugIndex], Vector2.Zero, 0f, 0.3f, Color.White);
-		// Raylib.DrawTexture(VideoHandler.Frames[51], 0, 0, Color.White);
-		// Raylib.DrawTexture(VideoHandler.Frames[debugIndex], 0, 0, Color.White);
+		// Raylib.DrawTextureEx(VideoHandler.Frames[debugIndex], Vector2.Zero, 0f, 0.3f, Color.White);
+		Rectangle source = new Rectangle(0, 0, VideoHandler.Width, -VideoHandler.Height);
+		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+		Raylib.DrawTexturePro(VideoHandler.Frames[debugIndex], source, destination, Vector2.Zero, 0f, Color.White);
+
+
 		Raylib.DrawText(debugIndex.ToString(), 500, 150, 30, Color.White);
 
 		Raylib.DrawFPS(10, 10);

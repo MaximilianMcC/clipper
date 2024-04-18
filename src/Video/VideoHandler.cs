@@ -9,8 +9,8 @@ class VideoHandler
 	public static string Path;
 
 	// Video information
-	private static int width;
-	private static int height;
+	public static int Width;
+	public static int Height;
 	private static int frameCount;
 	private static double frameRate;
 
@@ -29,7 +29,7 @@ class VideoHandler
 		Frames = new Texture2D[frameCount];
 
 		// Make a render texture for baking to
-		renderTexture = Raylib.LoadRenderTexture(width, height);
+		renderTexture = Raylib.LoadRenderTexture(Width, Height);
 	}
 
 	private static void GetVideoInformation()
@@ -61,8 +61,8 @@ class VideoHandler
 		JsonElement videoStream = json.RootElement.GetProperty("streams")[0];
 
 		// Get the width and height
-		width = videoStream.GetProperty("width").GetInt32();
-		height = videoStream.GetProperty("height").GetInt32();
+		Width = videoStream.GetProperty("width").GetInt32();
+		Height = videoStream.GetProperty("height").GetInt32();
 
 		// Get the number of frames
 		string frameCountString = videoStream.GetProperty("nb_frames").GetString();
@@ -77,26 +77,30 @@ class VideoHandler
 		// Figure out how many bytes in a pixel,
 		// and how many bytes in a frame
 		bytesPerPixel = 3; //? R, G, B (24 bit)
-		bytesPerFrame = (width * height) * bytesPerPixel;
+		bytesPerFrame = (Width * Height) * bytesPerPixel;
 
 		// Print out all the extracted information
 		// TODO: Don't do this in production
 		// TODO: Put in ToString()
 		// TODO: Don't do
 		Console.WriteLine("Extracted information from " + Path + ":");
-		Console.WriteLine("Size:\t\t" + width + "x" + height);
+		Console.WriteLine("Size:\t\t" + Width + "x" + Height);
 		Console.WriteLine("Frames:\t\t" + frameCount + " @ " + frameRate.ToString("#.#") + "fps");
 	}
 
-	public static void LoadFrameBatch(int frameIndex)
+	public static void LoadFrameBatch(int frameIndex, int framesToLoad)
 	{
 		// Make and run the FFMPEG command to extract the video data
 		Process process = new Process();
 		process.StartInfo = new ProcessStartInfo()
 		{
 			FileName = "ffmpeg.exe",
-			// Arguments = $"-i {Path} -f image2pipe -vcodec rawvideo -",
-			Arguments = $"-i {Path} -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			// Arguments = $"-i {Path} -vf \"select='gte(n,{frameIndex})&&lt(n,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			// Arguments = $"-i {Path} -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			// Arguments = $"-i {Path} -vf select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)' -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			// Arguments = $"-i {Path} -vf \"select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			// Arguments = $"-i {Path} -vf \"select='gte(n\\,{frameIndex})&<(n\\,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			Arguments = $"-i {Path} -vf \"select='gte(n\\,{frameIndex})*lt(n\\,{frameIndex + framesToLoad})'\" -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
 
 			UseShellExecute = false,
 			RedirectStandardError = true,
@@ -105,38 +109,34 @@ class VideoHandler
 		process.Start();
 
 		// Open the stream and start reading the incoming data
-		int framesRead = 0;
 		using (Stream stream = process.StandardOutput.BaseStream)
 		{
-			// Store info for the current frames
-			byte[] frameBuffer = new byte[bytesPerFrame];
-			int totalBytesRead = 0;
-
-			// Keep reading everything until theres nothing
-			// left to read
-			while (framesRead + 1 < 10)
-			// while (framesRead + 1 < frameCount)
+			// Loop through all frames that we need to load
+			// for (int i = 0; i < framesToLoad; i++)
+			for (int i = 0; i < 1; i++)
 			{
-				// Read the incoming bytes
-				int bytesRemaining = bytesPerFrame - totalBytesRead;
-				int bytesRead = stream.Read(frameBuffer, totalBytesRead, bytesRemaining);
-				totalBytesRead += bytesRead;
+				// Store all of the data for the current frame
+				byte[] frameBuffer = new byte[bytesPerFrame];
+				int totalBytesRead = 0;
 
-				// Check for if we've collected enough
-				// bytes to make a whole frame
-				if (totalBytesRead == bytesPerFrame)
+				// Keep reading stuff until we have read a complete frame
+				while (totalBytesRead != bytesPerFrame)
 				{
-					// Bake the frame and save it
-					Frames[framesRead] = GenerateFrame(frameBuffer);
-					Console.WriteLine($"Read frame {framesRead + 1}/{frameCount}");
-					framesRead++;
+					// Read the incoming bytes
+					int bytesRemaining = bytesPerFrame - totalBytesRead;
+					int bytesRead = stream.Read(frameBuffer, totalBytesRead, bytesRemaining);
+					totalBytesRead += bytesRead;
 
-					// Reset everything for the next frame
-					// TODO: See if we don't need to make a new array and just change buffer position or something
-					frameBuffer = new byte[bytesPerFrame];
-					totalBytesRead = 0;
+					// Check for if we've collected enough
+					// bytes to make a whole frame
+					if (totalBytesRead == bytesPerFrame)
+					{
+						// Bake the frame and save it
+						Frames[frameIndex + i] = GenerateFrame(frameBuffer);
+						Console.WriteLine($"Read frame {frameIndex + i + 1}/{frameCount}");
+						break;
+					}
 				}
-				
 			}
 		}
 
@@ -147,33 +147,31 @@ class VideoHandler
 		Console.WriteLine("Done!");
 	}
 
-	// TODO: Draw some random stuff to see if issue with raylib
+	// Bake a texture to a texture
+	//? Because OpenGL stink its drawn upside down so when rendering it needs to be flipped
 	private static Texture2D GenerateFrame(byte[] frameData)
 	{
-
 		// Loop through every pixel in the frame and draw it
 		Raylib.BeginTextureMode(renderTexture);
-		for (int y = 0; y < height; y++)
+		for (int y = 0; y < Height; y++)
 		{
-			for (int x = 0; x < width; x++)
+			for (int x = 0; x < Width; x++)
 			{
 				// Get the color of the pixel
 				//? 3 because 3 bytes (r, g, b)
-				int pixelIndex = ((y * width) + x) * 3;
+				//? Apparently doing maths faster than using variable
+				int pixelIndex = ((y * Width) + x) * 3;
 				Color pixel = new Color(frameData[pixelIndex], frameData[pixelIndex + 1], frameData[pixelIndex + 2], byte.MaxValue);
 
 				// Draw the pixel
 				Raylib.DrawPixel(x, y, pixel);
 			}
 		}
+		// Raylib.ClearBackground(Color.Green);
 		Raylib.EndTextureMode();
 
-
-		// Get the frame, then unload the render texture
+		// Get the frame, then return it
 		Texture2D frame = renderTexture.Texture;
-		// Raylib.UnloadRenderTexture(renderTexture);
-
-		// Give back the baked frame
 		return frame;
 	}
 }
