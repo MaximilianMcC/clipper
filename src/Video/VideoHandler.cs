@@ -29,7 +29,7 @@ class VideoHandler
 		Frames = new Texture2D[frameCount];
 
 		// Make a render texture for baking to
-		renderTexture = Raylib.LoadRenderTexture(Width, Height);
+		// renderTexture = Raylib.LoadRenderTexture(Width, Height);
 	}
 
 	private static void GetVideoInformation()
@@ -108,40 +108,36 @@ class VideoHandler
 		};
 		process.Start();
 
-		// Open the stream and start reading the incoming data
-		using (Stream stream = process.StandardOutput.BaseStream)
+		// Loop through all frames that we need to load
+		for (int i = 0; i < framesToLoad; i++)
 		{
-			// Loop through all frames that we need to load
-			// for (int i = 0; i < framesToLoad; i++)
-			for (int i = 0; i < 1; i++)
+			// Store all of the data for the current frame
+			byte[] frameBuffer = new byte[bytesPerFrame];
+			int totalBytesRead = 0;
+
+			// Keep reading stuff until we have read a complete frame
+			while (totalBytesRead != bytesPerFrame)
 			{
-				// Store all of the data for the current frame
-				byte[] frameBuffer = new byte[bytesPerFrame];
-				int totalBytesRead = 0;
+				// Read the incoming bytes
+				int bytesRemaining = bytesPerFrame - totalBytesRead;
+				int bytesRead = process.StandardOutput.BaseStream.Read(frameBuffer, totalBytesRead, bytesRemaining);
+				totalBytesRead += bytesRead;
 
-				// Keep reading stuff until we have read a complete frame
-				while (totalBytesRead != bytesPerFrame)
+				// Check for if we've collected enough
+				// bytes to make a whole frame
+				if (totalBytesRead == bytesPerFrame)
 				{
-					// Read the incoming bytes
-					int bytesRemaining = bytesPerFrame - totalBytesRead;
-					int bytesRead = stream.Read(frameBuffer, totalBytesRead, bytesRemaining);
-					totalBytesRead += bytesRead;
-
-					// Check for if we've collected enough
-					// bytes to make a whole frame
-					if (totalBytesRead == bytesPerFrame)
-					{
-						// Bake the frame and save it
-						Frames[frameIndex + i] = GenerateFrame(frameBuffer);
-						Console.WriteLine($"Read frame {frameIndex + i + 1}/{frameCount}");
-						break;
-					}
+					// Bake the frame and save it
+					Frames[frameIndex + i] = GenerateFrame(frameBuffer);
+					Console.WriteLine($"Read frame {frameIndex + i + 1}/{frameCount}");
+					break;
 				}
 			}
 		}
 
 		// TODO: Wait for exit
 		//! process isn't ending for some reason
+		//! Process will still be running in background
 		// process.WaitForExit();
 
 		Console.WriteLine("Done!");
@@ -151,6 +147,8 @@ class VideoHandler
 	//? Because OpenGL stink its drawn upside down so when rendering it needs to be flipped
 	private static Texture2D GenerateFrame(byte[] frameData)
 	{
+		renderTexture = Raylib.LoadRenderTexture(Width, Height);
+
 		// Loop through every pixel in the frame and draw it
 		Raylib.BeginTextureMode(renderTexture);
 		for (int y = 0; y < Height; y++)
