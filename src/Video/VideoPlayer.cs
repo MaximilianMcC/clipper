@@ -42,7 +42,7 @@ class VideoPlayer
 				// Load in a couple more frames
 				// TODO: Calculate how many frames in the method
 				int framesToLoad = Math.Min(FullBatchSize, VideoHandler.FrameCount - FullBatchSize);
-				VideoHandler.LoadFrameBatch(FrameIndex + 1, framesToLoad);
+				VideoHandler.GenerateFrame(VideoHandler.RawFrames[FrameIndex], FrameIndex);
 			}
 		}
 	}

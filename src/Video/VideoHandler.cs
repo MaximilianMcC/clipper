@@ -16,6 +16,7 @@ class VideoHandler
 
 	// Important stuff
 	public static Texture2D[] Frames { get; private set; }
+	public static byte[][] RawFrames { get; private set; }
 	public static Music Audio { get; private set; }
 
 	// Frame stuff
@@ -29,15 +30,25 @@ class VideoHandler
 		GetVideoInformation();
 
 		// Store all of the frames
+		RawFrames = new byte[FrameCount][];
 		Frames = new Texture2D[FrameCount];
 
 		// Make a render texture for baking to
 		renderTexture = Raylib.LoadRenderTexture(Width, Height);
 
 		// Load the audio
-		// TODO: Use raylib audio and not music
-		// TODO: Use ffmpeg to get the raw bytes of it
-		// Audio = Raylib.LoadMusicStream(Path);
+		// Audio = LoadAllAudio();
+
+		// Immediately make a new thread and begin to
+		// load in every single frame in the video so
+		// that it should be ready when the time comes
+		// to use it. If the frame isn't ready then it
+		// can be loaded using LoadFrameBatch()
+		Thread backgroundLoader = new Thread(() => {
+			LoadFrameBatch(0, FrameCount);
+			Console.WriteLine("Background loader finished loading everything.");
+		});
+		backgroundLoader.Start();
 	}
 
 	private static void GetVideoInformation()
@@ -96,6 +107,35 @@ class VideoHandler
 		Console.WriteLine("Frames:\t\t" + FrameCount + " @ " + FrameRate.ToString("#.#") + "fps");
 	}
 
+	private static Music LoadAllAudio()
+	{
+		// Make and run the FFMPEG command to extract the audio data
+		Process process = new Process();
+		process.StartInfo = new ProcessStartInfo()
+		{
+			FileName = "ffmpeg.exe",
+			Arguments = $"-i {Path} -vn -f s16le -",
+
+			UseShellExecute = false,
+			RedirectStandardError = true,
+			RedirectStandardOutput = true
+		};
+		process.Start();
+
+		//? idk if theres an easy way to calculate the size of the audio so doing like this
+		// Open a memory stream to read the bytes
+		byte[] audioBytes;
+		using (MemoryStream stream = new MemoryStream())
+		{
+			// Get all the data
+			process.StandardOutput.BaseStream.CopyTo(stream);
+			audioBytes = stream.ToArray();
+		}
+
+		// Load, then give back the audio as Raylib music
+		return Raylib.LoadMusicStreamFromMemory("raw", audioBytes);
+	}
+
 	public static void LoadFrameBatch(int frameIndex, int framesToLoad)
 	{
 		// Make and run the FFMPEG command to extract the video data
@@ -130,8 +170,8 @@ class VideoHandler
 				// bytes to make a whole frame
 				if (totalBytesRead == bytesPerFrame)
 				{
-					// Bake the frame and save it
-					Frames[frameIndex + i] = GenerateFrame(frameBuffer);
+					// Save the frames raw data
+					RawFrames[frameIndex + i] = frameBuffer;
 					break;
 				}
 			}
@@ -146,8 +186,12 @@ class VideoHandler
 
 	// Bake a texture to a texture
 	//? Because OpenGL stink its drawn upside down so when rendering it needs to be flipped
-	private static Texture2D GenerateFrame(byte[] frameData)
+	// TODO: Load image from memory
+	public static void GenerateFrame(byte[] frameData, int frameIndex)
 	{
+		// Make a new render texture (debug)
+		renderTexture = Raylib.LoadRenderTexture(Width, Height);
+
 		// Loop through every pixel in the frame and draw it
 		Raylib.BeginTextureMode(renderTexture);
 		for (int y = 0; y < Height; y++)
@@ -168,7 +212,18 @@ class VideoHandler
 		Raylib.EndTextureMode();
 
 		// Get the frame, then return it
-		Texture2D frame = renderTexture.Texture;
+		Frames[frameIndex] = renderTexture.Texture;
+	}
+
+	// TODO: If get this working its quicker than render texture
+	/*
+	private static Texture2D GenerateFrame(byte[] frameData)
+	{
+		Image frameImage = Raylib.LoadImageFromMemory("rgb24", frameData);
+		Texture2D frame = Raylib.LoadTextureFromImage(frameImage);
+		Raylib.UnloadImage(frameImage);
+
 		return frame;
 	}
+	*/
 }

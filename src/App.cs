@@ -32,9 +32,11 @@ class App
 		VideoPlayer.Volume = 0f;
 	}
 
+	private static bool e = false;
 	private static void Update()
 	{
-		VideoPlayer.Update();
+		if (Raylib.IsKeyPressed(KeyboardKey.Space)) e = true;
+		if (e) VideoPlayer.Update();
 	}
 
 	private static void Render()
