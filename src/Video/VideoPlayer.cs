@@ -18,7 +18,7 @@ class VideoPlayer
 
 	public static void Update()
 	{
-		// Check for if we're playing
+		// Check for if the video is paused or not
 		if (Playing == false) return;
 
 		// Check for if we need to show the next frame
@@ -39,12 +39,13 @@ class VideoPlayer
 			// Check for if the frame ahead of the one we're showing rn has been loaded
 			if (VideoHandler.Frames[FrameIndex].Id == 0)
 			{
-				// Load in a couple more frames
-				// TODO: Calculate how many frames in the method
-				int framesToLoad = Math.Min(FullBatchSize, VideoHandler.FrameCount - FullBatchSize);
+				//TODO: Load in a couple more than one frame
 				VideoHandler.GenerateFrame(VideoHandler.RawFrames[FrameIndex], FrameIndex);
 			}
 		}
+
+		// Play the videos audio
+		Raylib.UpdateMusicStream(VideoHandler.Audio);
 	}
 
 	public static void Render()

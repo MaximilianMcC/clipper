@@ -6,13 +6,15 @@ class App
 
 	public static void Run()
 	{
-		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
+		// Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
+		Raylib.SetTraceLogLevel(TraceLogLevel.All);
 
 		// Raylib stuff
 		// TODO: Switch library (this is NOT a game!!)
 		Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
 		Raylib.SetConfigFlags(ConfigFlags.AlwaysRunWindow);
 		Raylib.InitWindow(700, 500, "Clipper r2");
+		Raylib.InitAudioDevice();
 
 		Start();
 		while (!Raylib.WindowShouldClose())
@@ -55,6 +57,7 @@ class App
 
 		// Close the window
 		//! Make sure to do this last.
+		Raylib.CloseAudioDevice();
 		Raylib.CloseWindow();
 	}
 }

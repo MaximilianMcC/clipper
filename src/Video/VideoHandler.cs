@@ -36,9 +36,6 @@ class VideoHandler
 		// Make a render texture for baking to
 		renderTexture = Raylib.LoadRenderTexture(Width, Height);
 
-		// Load the audio
-		// Audio = LoadAllAudio();
-
 		// Immediately make a new thread and begin to
 		// load in every single frame in the video so
 		// that it should be ready when the time comes
@@ -49,6 +46,9 @@ class VideoHandler
 			Console.WriteLine("Background loader finished loading everything.");
 		});
 		backgroundLoader.Start();
+
+		// Load the audio
+		LoadAllAudio();
 	}
 
 	private static void GetVideoInformation()
@@ -107,14 +107,17 @@ class VideoHandler
 		Console.WriteLine("Frames:\t\t" + FrameCount + " @ " + FrameRate.ToString("#.#") + "fps");
 	}
 
-	private static Music LoadAllAudio()
+	/*
+	private static void LoadAllAudio()
 	{
 		// Make and run the FFMPEG command to extract the audio data
 		Process process = new Process();
 		process.StartInfo = new ProcessStartInfo()
 		{
+			// TODO: Use ogg (smaller and higher quality)
 			FileName = "ffmpeg.exe",
-			Arguments = $"-i {Path} -vn -f s16le -",
+			Arguments = $"-i {Path} -vn -acodec libvorbis -f wav -",
+			// Arguments = $"-i {Path} -f wav -",
 
 			UseShellExecute = false,
 			RedirectStandardError = true,
@@ -132,9 +135,45 @@ class VideoHandler
 			audioBytes = stream.ToArray();
 		}
 
+		audioBytes = File.ReadAllBytes(Path);
+
 		// Load, then give back the audio as Raylib music
-		return Raylib.LoadMusicStreamFromMemory("raw", audioBytes);
+		Console.WriteLine("Loading music rn");
+		Audio = Raylib.LoadMusicStreamFromMemory(".wav", audioBytes);
+		Raylib.PlayMusicStream(Audio);
+		Console.WriteLine("music loaded!!");
 	}
+	*/
+
+	private static void LoadAllAudio()
+{
+    // Make and run the FFMPEG command to extract the audio data
+    Process ffmpegProcess = new Process();
+    ffmpegProcess.StartInfo = new ProcessStartInfo()
+    {
+        FileName = "ffmpeg.exe",
+        Arguments = $"-i {Path} -vn -acodec pcm_s16le -ar 44100 -ac 2 -f wav -",
+        UseShellExecute = false,
+        RedirectStandardError = true,
+        RedirectStandardOutput = true
+    };
+    ffmpegProcess.Start();
+
+    // Open a memory stream to read the bytes
+    using (MemoryStream audioMemoryStream = new MemoryStream())
+    {
+        // Get all the data
+        ffmpegProcess.StandardOutput.BaseStream.CopyTo(audioMemoryStream);
+
+        // Load the audio data from memory directly into Raylib
+        audioMemoryStream.Seek(0, SeekOrigin.Begin);
+        Console.WriteLine("Loading music...");
+        Audio = Raylib.LoadMusicStreamFromMemory(".wav", audioMemoryStream.ToArray());
+        Raylib.PlayMusicStream(Audio);
+        Console.WriteLine("Music loaded!!");
+    }
+}
+
 
 	public static void LoadFrameBatch(int frameIndex, int framesToLoad)
 	{
