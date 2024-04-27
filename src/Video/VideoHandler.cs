@@ -1,12 +1,11 @@
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using Raylib_cs;
 
 class VideoHandler
 {
 	// I/O stuff
-	public static string Path { get; set; }
+	public static string VideoPath { get; set; }
 
 	// Video information
 	public static int Width { get; private set; }
@@ -36,19 +35,11 @@ class VideoHandler
 		// Make a render texture for baking to
 		renderTexture = Raylib.LoadRenderTexture(Width, Height);
 
-		// Immediately make a new thread and begin to
-		// load in every single frame in the video so
-		// that it should be ready when the time comes
-		// to use it. If the frame isn't ready then it
-		// can be loaded using LoadFrameBatch()
-		Thread backgroundLoader = new Thread(() => {
-			LoadFrameBatch(0, FrameCount);
-			Console.WriteLine("Background loader finished loading everything.");
-		});
-		backgroundLoader.Start();
+		// Load all frames in the background
+		LoadFramesInBackground();
 
 		// Load the audio
-		LoadAllAudio();
+		//! LoadAllAudio();
 	}
 
 	private static void GetVideoInformation()
@@ -60,7 +51,7 @@ class VideoHandler
 			// This command shows all of the stream information
 			// in JSON format
 			FileName = "ffprobe.exe",
-			Arguments = $"-i {Path} -show_streams -print_format json -v error",
+			Arguments = $"-i {VideoPath} -show_streams -print_format json -v error",
 
 			UseShellExecute = false,
 			RedirectStandardOutput = true,
@@ -102,22 +93,27 @@ class VideoHandler
 		// TODO: Don't do this in production
 		// TODO: Put in ToString()
 		// TODO: Don't do
-		Console.WriteLine("Extracted information from " + Path + ":");
+		Console.WriteLine("Extracted information from " + VideoPath + ":");
 		Console.WriteLine("Size:\t\t" + Width + "x" + Height);
 		Console.WriteLine("Frames:\t\t" + FrameCount + " @ " + FrameRate.ToString("#.#") + "fps");
 	}
 
-	/*
+	// TODO: Load audio to memory
 	private static void LoadAllAudio()
 	{
+		// Get the temporary output path for saving the audio file
+		//? temp name generation might be a bit dodgy but it works
+		string temporaryDirectory = Path.GetTempPath();
+		string temporaryName = $"clipper{DateTime.UtcNow.ToBinary()}.wav";
+		string temporaryFile = Path.Combine(temporaryDirectory, temporaryName);
+
 		// Make and run the FFMPEG command to extract the audio data
 		Process process = new Process();
 		process.StartInfo = new ProcessStartInfo()
 		{
 			// TODO: Use ogg (smaller and higher quality)
 			FileName = "ffmpeg.exe",
-			Arguments = $"-i {Path} -vn -acodec libvorbis -f wav -",
-			// Arguments = $"-i {Path} -f wav -",
+			Arguments = $"-i {VideoPath} -vn -acodec libvorbis {temporaryFile}",
 
 			UseShellExecute = false,
 			RedirectStandardError = true,
@@ -125,64 +121,25 @@ class VideoHandler
 		};
 		process.Start();
 
-		//? idk if theres an easy way to calculate the size of the audio so doing like this
-		// Open a memory stream to read the bytes
-		byte[] audioBytes;
-		using (MemoryStream stream = new MemoryStream())
-		{
-			// Get all the data
-			process.StandardOutput.BaseStream.CopyTo(stream);
-			audioBytes = stream.ToArray();
-		}
-
-		audioBytes = File.ReadAllBytes(Path);
-
-		// Load, then give back the audio as Raylib music
-		Console.WriteLine("Loading music rn");
-		Audio = Raylib.LoadMusicStreamFromMemory(".wav", audioBytes);
+		// Load, then start/play the audio
+		Audio = Raylib.LoadMusicStream(temporaryFile);
 		Raylib.PlayMusicStream(Audio);
-		Console.WriteLine("music loaded!!");
+
+		// Delete the temporary file since it now
+		// lives in memory when raylib loaded it
+		File.Delete(temporaryFile);
 	}
-	*/
-
-	private static void LoadAllAudio()
-{
-    // Make and run the FFMPEG command to extract the audio data
-    Process ffmpegProcess = new Process();
-    ffmpegProcess.StartInfo = new ProcessStartInfo()
-    {
-        FileName = "ffmpeg.exe",
-        Arguments = $"-i {Path} -vn -acodec pcm_s16le -ar 44100 -ac 2 -f wav -",
-        UseShellExecute = false,
-        RedirectStandardError = true,
-        RedirectStandardOutput = true
-    };
-    ffmpegProcess.Start();
-
-    // Open a memory stream to read the bytes
-    using (MemoryStream audioMemoryStream = new MemoryStream())
-    {
-        // Get all the data
-        ffmpegProcess.StandardOutput.BaseStream.CopyTo(audioMemoryStream);
-
-        // Load the audio data from memory directly into Raylib
-        audioMemoryStream.Seek(0, SeekOrigin.Begin);
-        Console.WriteLine("Loading music...");
-        Audio = Raylib.LoadMusicStreamFromMemory(".wav", audioMemoryStream.ToArray());
-        Raylib.PlayMusicStream(Audio);
-        Console.WriteLine("Music loaded!!");
-    }
-}
-
 
 	public static void LoadFrameBatch(int frameIndex, int framesToLoad)
 	{
+		Console.WriteLine($"Loading {framesToLoad} frames from {frameIndex} - {frameIndex + framesToLoad}!");
+
 		// Make and run the FFMPEG command to extract the video data
 		Process process = new Process();
 		process.StartInfo = new ProcessStartInfo()
 		{
 			FileName = "ffmpeg.exe",
-			Arguments = $"-i {Path} -vf select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)' -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
+			Arguments = $"-i {VideoPath} -vf select='between(n\\,{frameIndex}\\,{frameIndex + framesToLoad}\\)' -f image2pipe -vcodec rawvideo -pix_fmt rgb24 -",
 
 			UseShellExecute = false,
 			RedirectStandardError = true,
@@ -193,6 +150,14 @@ class VideoHandler
 		// Loop through all frames that we need to load
 		for (int i = 0; i < framesToLoad; i++)
 		{
+			// If we have already loaded the frame then
+			// skip the current frame
+			if (Frames[i].Id != 0)
+			{
+				Console.WriteLine($"Frame {i} has already been loaded! Skipping.");
+				continue;
+			}
+
 			// Store all of the data for the current frame
 			byte[] frameBuffer = new byte[bytesPerFrame];
 			int totalBytesRead = 0;
@@ -247,7 +212,6 @@ class VideoHandler
 				Raylib.DrawPixel(x, y, pixel);
 			}
 		}
-		// Raylib.ClearBackground(Color.Green);
 		Raylib.EndTextureMode();
 
 		// Get the frame, then return it
@@ -265,4 +229,67 @@ class VideoHandler
 		return frame;
 	}
 	*/
+
+	private static void LoadFramesInBackground()
+	{
+		// Define how many threads we are going to allocate
+		// to loading in the video
+		const int threads = 4;
+		
+		// Calculate how many frames we need to load on each 
+		// thread and accounting for division remainder
+		int framesPerThread = FrameCount / threads;
+		int frameRemainder = FrameCount % threads;
+
+		// Because threads run whenever all values need
+		// to be gotten beforehand to avoid using the same
+		// variables multiple times
+		int[][] parameters = new int[threads][];
+		for (int i = 0; i < threads; i++)
+		{
+			// Get the parameters
+			int frameIndex = i * framesPerThread;
+			int framesToLoad = framesPerThread;
+
+			// Check for if we are on the last thread and
+			// add the required division remainder thingy
+			// to make sure all the frames are properly loaded
+			if (i == threads - 1) framesToLoad += frameRemainder;
+
+			// Add the parameters to the array
+			parameters[i] = new int[] { frameIndex, framesToLoad };
+		}
+
+		Console.WriteLine(parameters.Length);
+
+		// Now that all the variables have been gotten, and
+		// in the correct order, we can make and run all
+		// the background loader threads
+		for (int i = 0; i < threads; i++)
+		{
+			// Grab a copy of the index because it
+			// will change when initiating the lambda
+			int currentIndex = i;
+
+			// Make the thread, then run it
+			Thread backgroundLoader = new Thread(() => {
+
+				LoadFrameBatch(parameters[currentIndex][0], parameters[currentIndex][1]);
+				Console.WriteLine("Loaded frame");
+			});
+			backgroundLoader.Start();
+		}
+	}
+
+	public static void UnloadVideo()
+	{
+		// Get rid of the music
+		Raylib.UnloadMusicStream(Audio);
+
+		// Remove all frames
+		foreach (Texture2D frame in Frames)
+		{
+			Raylib.UnloadTexture(frame);
+		}
+	}
 }
