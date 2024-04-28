@@ -6,8 +6,8 @@ class App
 
 	public static void Run()
 	{
-		// Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
-		Raylib.SetTraceLogLevel(TraceLogLevel.All);
+		Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
+		// Raylib.SetTraceLogLevel(TraceLogLevel.All);
 
 		// Raylib stuff
 		// TODO: Switch library (this is NOT a game!!)

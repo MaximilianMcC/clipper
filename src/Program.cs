@@ -14,7 +14,7 @@ class Program
 
 		// Set the video path, then run
 		// the actual program
-		VideoHandler.Path = args[0];
+		VideoHandler.VideoPath = args[0];
 		App.Run();
 	}
 

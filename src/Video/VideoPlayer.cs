@@ -52,7 +52,7 @@ class VideoPlayer
 	{
 		// Draw the video filling up the entire screen
 		// TODO: Respect the aspect ratio and don't make look like its from 2010
-		Rectangle source = new Rectangle(0, 0, VideoHandler.Width, -VideoHandler.Height);
+		Rectangle source = new Rectangle(0, 0, VideoHandler.Width, VideoHandler.Height);
 		Rectangle destination = new Rectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
 		Raylib.DrawTexturePro(VideoHandler.Frames[FrameIndex], source, destination, Vector2.Zero, 0f, Color.White);
 

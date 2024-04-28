@@ -188,47 +188,51 @@ class VideoHandler
 		// process.WaitForExit();
 	}
 
-	// Bake a texture to a texture
-	//? Because OpenGL stink its drawn upside down so when rendering it needs to be flipped
-	// TODO: Load image from memory
+	// Bake a frame to a texture
 	public static void GenerateFrame(byte[] frameData, int frameIndex)
 	{
-		// Make a new render texture (debug)
-		renderTexture = Raylib.LoadRenderTexture(Width, Height);
-
-		// Loop through every pixel in the frame and draw it
-		Raylib.BeginTextureMode(renderTexture);
-		for (int y = 0; y < Height; y++)
+		// Convert byte array to a raylib color array
+		Color[] pixels = new Color[Width * Height];
+		for (int i = 0; i < (bytesPerFrame / 3); i++)
 		{
-			for (int x = 0; x < Width; x++)
-			{
-				// Get the color of the pixel
-				//? 3 because 3 bytes (r, g, b)
-				//? Apparently doing maths faster than using variable
-				int pixelIndex = ((y * Width) + x) * 3;
-				Color pixel = new Color(frameData[pixelIndex], frameData[pixelIndex + 1], frameData[pixelIndex + 2], byte.MaxValue);
+			// Make the pixel from the raw bytes
+			pixels[i] = new Color(
+				frameData[i * 3 + 0],
+				frameData[i * 3 + 1],
+				frameData[i * 3 + 2],
+				Byte.MaxValue
+			);
+		}
 
-				// Draw the pixel
-				Raylib.DrawPixel(x, y, pixel);
+		// Open an unsafe context because
+		// we're working with pointers
+		unsafe
+		{
+			// Get a pointer to the colors/pixel array
+			fixed (Color* pixelPointer = pixels)
+			{
+				// Create the image using the pointer to
+				// add all of the data
+				Image image = new Image
+				{
+					Width = Width,
+					Height = Height,
+
+					Format = PixelFormat.UncompressedR8G8B8A8,
+					Data = pixelPointer,
+					Mipmaps = 1,
+				};
+
+				// Convert the image to a texture for rendering,
+				// and assign it to the frames array
+				Texture2D texture = Raylib.LoadTextureFromImage(image);
+				Frames[frameIndex] = texture;
+
+				// TODO: Unload the image (might need to put in array and unload when program close maybe)
 			}
 		}
-		Raylib.EndTextureMode();
-
-		// Get the frame, then return it
-		Frames[frameIndex] = renderTexture.Texture;
 	}
 
-	// TODO: If get this working its quicker than render texture
-	/*
-	private static Texture2D GenerateFrame(byte[] frameData)
-	{
-		Image frameImage = Raylib.LoadImageFromMemory("rgb24", frameData);
-		Texture2D frame = Raylib.LoadTextureFromImage(frameImage);
-		Raylib.UnloadImage(frameImage);
-
-		return frame;
-	}
-	*/
 
 	private static void LoadFramesInBackground()
 	{
@@ -260,8 +264,6 @@ class VideoHandler
 			parameters[i] = new int[] { frameIndex, framesToLoad };
 		}
 
-		Console.WriteLine(parameters.Length);
-
 		// Now that all the variables have been gotten, and
 		// in the correct order, we can make and run all
 		// the background loader threads
@@ -275,7 +277,7 @@ class VideoHandler
 			Thread backgroundLoader = new Thread(() => {
 
 				LoadFrameBatch(parameters[currentIndex][0], parameters[currentIndex][1]);
-				Console.WriteLine("Loaded frame");
+				Console.WriteLine($"Loaded frame {currentIndex + 1}/{threads}");
 			});
 			backgroundLoader.Start();
 		}
