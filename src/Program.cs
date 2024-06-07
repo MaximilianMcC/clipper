@@ -12,9 +12,7 @@ class Program
 		// at the video path
 		if (VideoExists(args) == false) return;
 
-		// Set the video path, then run
-		// the actual program
-		VideoHandler.VideoPath = args[0];
+		
 		App.Run();
 	}
 
