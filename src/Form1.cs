@@ -1,7 +1,16 @@
+using AForge.Video.FFMPEG;
+
 namespace clipper;
 
 public partial class Form1 : Form
 {
+	private PictureBox videoOutput;
+	private Bitmap[] frames;
+	private long frameCount;
+	private double framesPerSecond;
+	private int width;
+	private int height;
+
 	public Form1()
 	{
 		// Set form window stuff and whatnot idk
@@ -36,6 +45,15 @@ public partial class Form1 : Form
 			Location = new Point(10, 80),
 			AutoSize = true
 		});
+
+		// Video player
+		videoOutput = new PictureBox()
+		{
+			BackColor = Color.Magenta,
+			Location = new Point(0, 0),
+			Size = new Size(400, 300)
+		};
+		Controls.Add(videoOutput);
 	}
 
 	private void HandleShortcuts(object sender, KeyEventArgs e)
@@ -74,6 +92,31 @@ public partial class Form1 : Form
 	// Load the video
 	private void LoadVideo(string videoPath)
 	{
-		Console.WriteLine("Loading " + videoPath + " rn");
+		// Open the video
+		VideoFileReader videoReader = new VideoFileReader();
+		videoReader.Open(videoPath);
+
+		// Extract all of the needed information
+		width = videoReader.Width;
+		height = videoReader.Height;
+		frameCount = videoReader.FrameCount;
+		framesPerSecond = videoReader.FrameRate;
+
+		// Make a frames array to store all of the video
+		// frames for playback later
+		frames = new Bitmap[frameCount];
+
+		// Loop over every frame in the video
+		for (int i = 0; i < frameCount; i++)
+		{			
+			// Get the current frame, then add it to the
+			// video frames array for later playback
+			Bitmap currentFrame = videoReader.ReadVideoFrame();
+			frames[i] = currentFrame;
+
+			// Get rid of the frame
+			currentFrame.Dispose();
+			Console.Write($"\rLoaded frame {i}/{frameCount}");
+		}
 	}
 }
