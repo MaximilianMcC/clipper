@@ -9,11 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Accord" Version="3.8.2-alpha" />
-    <PackageReference Include="Accord.Video" Version="3.8.2-alpha" />
-    <PackageReference Include="Accord.Video.FFMPEG" Version="3.8.2-alpha" />
-    <PackageReference Include="AForge" Version="2.2.5" />
-    <PackageReference Include="AForge.Video" Version="2.2.5" />
+    <PackageReference Include="LibVLCSharp.WinForms" Version="3.8.5" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.20" />
   </ItemGroup>
 
 </Project>
