@@ -10,6 +10,9 @@ public partial class Form1 : Form
 	private MediaPlayer mediaPlayer;
 	private VideoView screen;
 
+	// Setting things
+	private readonly int seekAmount = 3; //? seconds
+
 	public Form1()
 	{
 		// Set form window stuff and whatnot idk
@@ -19,6 +22,7 @@ public partial class Form1 : Form
 		Size = new Size(800, 600);
 
 		// Event things
+		KeyPreview = true;
 		KeyDown += new KeyEventHandler(HandleShortcuts);
 
 		// Setup the video player thing
@@ -28,8 +32,6 @@ public partial class Form1 : Form
 
 		// Draw all the UI
 		DrawUi();
-
-		LoadVideoFromDialog();
 	}
 
 	private void DrawUi()
@@ -53,27 +55,39 @@ public partial class Form1 : Form
 		});
 
 		// Media player
-		screen = new VideoView();
-		screen.MediaPlayer = mediaPlayer;
-		screen.BackColor = Color.Magenta;
-		screen.Location = new Point(100, 100);
-		screen.Size = new Size(100, 100);
-		Console.WriteLine(screen.Width);
+		screen = new VideoView()
+		{
+			MediaPlayer = mediaPlayer,
+			BackColor = Color.Magenta,
+			Size = Size
+		};
 		Controls.Add(screen);
 	}
 
 	private void HandleShortcuts(object sender, KeyEventArgs e)
 	{
-		Console.WriteLine("Shortcuts being handled rn");
-
 		// Check for if they wanna open a video (ctrl+o)
 		if (e.Control && e.KeyCode == Keys.O) LoadVideoFromDialog();
+
+		// Check for if they wanna pause/play the video
+		else if (e.KeyCode == Keys.Space ||
+			e.KeyCode == Keys.Play ||
+			e.KeyCode == Keys.MediaPlayPause
+		) screen.MediaPlayer.SetPause(screen.MediaPlayer.IsPlaying);
+
+		// Check for if they wanna mute the video
+		else if (e.KeyCode == Keys.M ||
+			e.KeyCode == Keys.VolumeMute
+		) screen.MediaPlayer.Mute = !screen.MediaPlayer.Mute;
+
+		// Check for if they wanna skip ahead/forwards by
+		// a specified duration to quickly skip around
+		else if (e.Control && e.KeyCode == Keys.Left) screen.MediaPlayer.Time = screen.MediaPlayer.Time - (seekAmount * 1000);
+		else if (e.Control && e.KeyCode == Keys.Right) screen.MediaPlayer.Time = screen.MediaPlayer.Time + (seekAmount * 1000);
 	}
 
 	private void LoadVideoFromDialog()
 	{
-		Console.WriteLine("Opening a video rn");
-
 		// Open a new file dialog to let the 
 		// user select the video file that they
 		// want to open so they can edit it
@@ -104,7 +118,5 @@ public partial class Form1 : Form
 	{
 		Media media = new Media(libVLC, videoPath, FromType.FromPath);
 		mediaPlayer.Play(media);
-		Console.WriteLine("Playing the video rn (now)");
-		Console.WriteLine(screen.Width);
 	}
 }
