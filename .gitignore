@@ -484,5 +484,5 @@ $RECYCLE.BIN/
 *.swp
 
 .vscode
-*debug*
-/assets
+*test*
+*temp*

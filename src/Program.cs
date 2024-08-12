@@ -1,12 +1,7 @@
-namespace clipper;
-
-static class Program
+﻿class Program
 {
-	[STAThread]
-	public static void Main()
-	{
-		// Run the form
-		ApplicationConfiguration.Initialize();
-		Application.Run(new Form1());
-	}    
+    public static void Main(string[] args)
+    {
+        Window.Run();
+    }
 }
